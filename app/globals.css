@@ -3,8 +3,8 @@
 :root {
   --background: #F8F9FA;
   --foreground: #44475B;
-  --primary: #00D09C;
-  --primary-dark: #00B386;
+  --primary: #00B386;
+  --primary-dark: #009970;
 }
 
 @theme inline {
@@ -14,10 +14,10 @@
   --color-primary-dark: var(--primary-dark);
   --color-text-dark: #44475B;
   --color-text-light: #7C7E8C;
+  --font-sans: var(--font-inter);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
