@@ -1,0 +1,27 @@
+# Meridian Dashboard - Next.js Project Setup
+
+## Project Overview
+- **Name:** Meridian Dashboard
+- **Type:** Next.js 14 with TypeScript and Tailwind CSS
+- **Purpose:** Groww-inspired investment platform landing page
+
+## Setup Progress
+
+- [x] Create copilot-instructions.md file
+- [ ] Clarify Project Requirements
+- [ ] Scaffold the Project
+- [ ] Customize the Project
+- [ ] Install Required Extensions
+- [ ] Compile the Project
+- [ ] Create and Run Task
+- [ ] Launch the Project
+- [ ] Ensure Documentation is Complete
+
+## Design Specifications
+- **Primary Color:** #00D09C (Groww green)
+- **Text Color:** #44475B (dark gray)
+- **Background:** #F8F9FA (light gray)
+- **Font:** Inter (similar to Groww)
+
+## Pages to Build
+1. Landing Page with Navbar and Hero Section
