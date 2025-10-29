@@ -25,3 +25,6 @@
 
 ## Pages to Build
 1. Landing Page with Navbar and Hero Section
+
+## coding instructions 
+1. dont put any emojis in the code whatsoever
