@@ -1,4 +1,3 @@
-
 import os
 import pandas as pd
 import yfinance as yf
@@ -6,16 +5,20 @@ from pymongo import MongoClient, ASCENDING
 from tqdm import tqdm
 from datetime import datetime
 from dotenv import load_dotenv
+import ssl
 
 # Load environment variables
 env_path = os.path.join(os.path.dirname(__file__), '.env')
 load_dotenv(env_path)
 MONGO_URI = os.getenv('MONGO_URI')
 
-# MongoDB setup
+# MongoDB setup with SSL context
 db_name = "Meridian"
 collection_name = "stocks"
-client = MongoClient(MONGO_URI)
+client = MongoClient(
+    MONGO_URI,
+    tlsAllowInvalidCertificates=True
+)
 db = client[db_name]
 collection = db[collection_name]
 
@@ -35,7 +38,7 @@ for ticker in tqdm(tickers, desc="Tickers"):
     try:
         df = yf.download(ticker, start=start_date, end=end_date, progress=False)
         if df.empty:
-            print(f"❌ No data for {ticker}")
+            print(f"[ERROR] No data for {ticker}")
             continue
         df = df.reset_index()
         records = []
@@ -62,7 +65,7 @@ for ticker in tqdm(tickers, desc="Tickers"):
                     upsert=True
                 )
             except Exception as e:
-                print(f"⚠️ Error inserting {rec['ticker']} {rec['date']}: {e}")
-        print(f"✅ Inserted/checked {len(records)} records for {ticker}")
+                print(f"[WARNING] Error inserting {rec['ticker']} {rec['date']}: {e}")
+        print(f"[SUCCESS] Inserted/checked {len(records)} records for {ticker}")
     except Exception as e:
-        print(f"❌ Error for {ticker}: {e}")
+        print(f"[ERROR] Error for {ticker}: {e}")

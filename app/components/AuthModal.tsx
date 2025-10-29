@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 
 interface AuthModalProps {
@@ -22,6 +23,15 @@ const investmentTypes = [
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [progress, setProgress] = useState(0);
+  const router = useRouter();
+
+  const handleContinue = () => {
+    router.push('/dashboard');
+  };
+
+  const handleGoogleAuth = () => {
+    router.push('/dashboard');
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -135,7 +145,10 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           </h2>
 
           {/* Google Sign In Button */}
-          <button className="w-full flex items-center justify-center gap-3 border-2 border-gray-300 rounded-md py-2.5 px-6 mb-6 hover:bg-gray-50 transition-colors cursor-pointer">
+          <button 
+            onClick={handleGoogleAuth}
+            className="w-full flex items-center justify-center gap-3 border-2 border-gray-300 rounded-md py-2.5 px-6 mb-6 hover:bg-gray-50 transition-colors cursor-pointer"
+          >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
                 fill="#4285F4"
@@ -172,7 +185,10 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           />
 
           {/* Continue Button */}
-          <button className="w-full bg-[#00B386] text-white py-2.5 rounded-md font-semibold text-sm hover:bg-[#009970] transition-colors cursor-pointer mb-4">
+          <button 
+            onClick={handleContinue}
+            className="w-full bg-[#00B386] text-white py-2.5 rounded-md font-semibold text-sm hover:bg-[#009970] transition-colors cursor-pointer mb-4"
+          >
             Continue
           </button>
 

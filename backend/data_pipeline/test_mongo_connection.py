@@ -16,7 +16,7 @@ try:
     )
     # The ismaster command is cheap and does not require auth.
     client.admin.command('ismaster')
-    print('✅ Successfully connected to MongoDB Atlas!')
-    print(f'📊 Available databases: {client.list_database_names()}')
+    print('[SUCCESS] Successfully connected to MongoDB Atlas!')
+    print(f'[INFO] Available databases: {client.list_database_names()}')
 except Exception as e:
-    print(f'❌ Connection failed: {e}')
+    print(f'[ERROR] Connection failed: {e}')
