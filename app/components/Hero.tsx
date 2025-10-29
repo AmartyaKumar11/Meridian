@@ -1,4 +1,8 @@
-export default function Hero() {
+interface HeroProps {
+  onOpenAuth: () => void;
+}
+
+export default function Hero({ onOpenAuth }: HeroProps) {
   return (
     <section className="bg-gradient-to-b from-[#F8F9FA] to-white py-20 md:py-32">
       <div className="max-w-7xl mx-auto px-6">
@@ -11,7 +15,10 @@ export default function Hero() {
             <p className="text-xl text-[#7C7E8C] leading-relaxed">
               Smarter Insights. Sharper Investments
             </p>
-            <button className="bg-[#00B386] text-white px-6 py-3 rounded-md font-semibold text-base hover:bg-[#009970] transition-colors shadow-lg cursor-pointer">
+            <button 
+              onClick={onOpenAuth}
+              className="bg-[#00B386] text-white px-6 py-3 rounded-md font-semibold text-base hover:bg-[#009970] transition-colors shadow-lg cursor-pointer"
+            >
               Get Started
             </button>
           </div>

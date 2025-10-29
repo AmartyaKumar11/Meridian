@@ -3,9 +3,13 @@
 import Link from "next/link";
 import { Search, ChevronDown } from "lucide-react";
 
-export default function Navbar() {
+interface NavbarProps {
+  onOpenAuth: () => void;
+}
+
+export default function Navbar({ onOpenAuth }: NavbarProps) {
   return (
-    <nav className="bg-white sticky top-0 z-50">
+    <nav className="bg-white sticky top-0 z-30">
       <div className="max-w-7xl mx-auto px-6 py-3.5">
         <div className="flex items-center justify-between">
           {/* Logo */}
@@ -221,12 +225,12 @@ export default function Navbar() {
             </div>
 
             {/* Login Button */}
-            <Link
-              href="/login"
+            <button
+              onClick={onOpenAuth}
               className="bg-[#00B386] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#009970] transition-colors cursor-pointer"
             >
               Login / Sign up
-            </Link>
+            </button>
           </div>
         </div>
       </div>
