@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #F8F9FA;
   --foreground: #44475B;
@@ -7,19 +9,17 @@
   --primary-dark: #009970;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-primary: var(--primary);
-  --color-primary-dark: var(--primary-dark);
-  --color-text-dark: #44475B;
-  --color-text-light: #7C7E8C;
-  --font-sans: var(--font-inter);
+.dark {
+  --background: #0C0E12;
+  --foreground: #D1D5DB;
+  --primary: #00B386;
+  --primary-dark: #009970;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */

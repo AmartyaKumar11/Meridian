@@ -1,17 +1,25 @@
 "use client";
 
-import { Bell, Search, TrendingUp, TrendingDown, Bookmark, BarChart3, FileText, Target, Zap, Wallet, Calendar, Filter, CreditCard, FileBarChart, Headphones, Sun, LogOut } from "lucide-react";
+import { Bell, Search, TrendingUp, TrendingDown, Filter, BarChart3, Target, Zap, CreditCard, FileBarChart, Headphones, Sun, LogOut, FileText, Moon } from "lucide-react";
 import PageTransition from "../components/PageTransition";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useTheme } from "../context/ThemeContext";
 
 export default function FOPage() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const router = useRouter();
+  const { theme, toggleTheme } = useTheme();
+
+  const handleLogout = () => {
+    router.push('/');
+  };
 
   return (
     <PageTransition>
-    <div className="min-h-screen bg-[#F8F9FA]">
+    <div className="min-h-screen bg-[#F8F9FA] dark:bg-[#0C0E12] transition-colors duration-300">
       {/* Top Navigation */}
-      <nav className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50">
+      <nav className="bg-white/80 dark:bg-[#1A1D24]/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50 transition-colors duration-300">
         <div className="max-w-[1400px] mx-auto px-6 py-2.5">
           <div className="flex items-center justify-between">
             {/* Left - Logo and Main Nav */}
@@ -22,25 +30,30 @@ export default function FOPage() {
               <div className="hidden md:flex items-center space-x-6 text-xs">
                 <a href="/dashboard" className="text-[#7C7E8C] hover:text-black">Stocks</a>
                 <a href="/fo" className="text-black font-medium">F&O</a>
-                <a href="#" className="text-[#7C7E8C] hover:text-black">Mutual Funds</a>
+                <a href="/mutual-funds" className="text-[#7C7E8C] hover:text-black">Mutual Funds</a>
               </div>
             </div>
 
             {/* Right - Search, Terminal, Trade, Notifications, Profile */}
             <div className="flex items-center space-x-4">
-              <div className="flex items-center bg-[#F8F9FA] rounded-md px-3 py-1.5 w-56">
+              <div className="flex items-center bg-[#F8F9FA] dark:bg-[#1F2228] rounded-md px-3 py-1.5 w-56">
                 <Search className="w-3.5 h-3.5 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Search Groww..."
-                  className="bg-transparent border-none outline-none ml-2 text-xs text-[#44475B] placeholder-gray-400 w-full"
+                  className="bg-transparent border-none outline-none ml-2 text-xs text-[#44475B] dark:text-gray-300 placeholder-gray-400 w-full"
                 />
                 <span className="text-[10px] text-gray-400">Ctrl+K</span>
               </div>
-              <button className="flex items-center space-x-1 text-xs text-[#44475B] hover:text-black">
+              <button className="flex items-center space-x-1 px-3 py-1.5 text-xs text-[#44475B] hover:text-black border border-gray-300 rounded-md hover:border-gray-400">
                 <span>Terminal</span>
               </button>
-              <button className="text-xs text-[#44475B] hover:text-black">915.trade</button>
+              <button className="flex items-center space-x-1 px-3 py-1.5 text-xs text-[#44475B] hover:text-black border border-gray-300 rounded-md hover:border-gray-400">
+                <span>915.trade</span>
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </button>
               <Bell className="w-4 h-4 text-gray-600 cursor-pointer" />
               <div className="relative">
                 <div 
@@ -132,9 +145,21 @@ export default function FOPage() {
 
                       {/* Footer */}
                       <div className="border-t border-gray-200 p-4">
-                        <button className="w-full flex items-center justify-between text-xs text-[#44475B] hover:text-[#00B386]">
+                        <button 
+                          onClick={toggleTheme}
+                          className="w-full flex items-center justify-between text-xs text-[#44475B] hover:text-[#00B386] mb-2"
+                        >
                           <div className="flex items-center space-x-2">
-                            <Sun className="w-4 h-4" />
+                            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                            <span>Theme</span>
+                          </div>
+                        </button>
+                        <button 
+                          onClick={handleLogout}
+                          className="w-full flex items-center justify-between text-xs text-red-600 hover:text-red-700"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <LogOut className="w-4 h-4" />
                           </div>
                           <span className="underline">Log out</span>
                         </button>
