@@ -143,7 +143,10 @@ export default function MutualFunds() {
                   className="bg-transparent border-none outline-none ml-2 text-xs text-[#44475B] dark:text-gray-300 placeholder-gray-400 w-full"
                 />
               </div>
-              <button className="flex items-center space-x-1 px-3 py-1.5 text-xs text-[#44475B] dark:text-gray-300 hover:text-black dark:hover:text-white border border-gray-300 dark:border-gray-700 rounded-md hover:border-gray-400 dark:hover:border-gray-600">
+              <button 
+                onClick={() => router.push('/terminal')}
+                className="flex items-center space-x-1 px-3 py-1.5 text-xs text-[#44475B] dark:text-gray-300 hover:text-black dark:hover:text-white border border-gray-300 dark:border-gray-700 rounded-md hover:border-gray-400 dark:hover:border-gray-600"
+              >
                 <span>Terminal</span>
               </button>
               <button className="flex items-center space-x-1 px-3 py-1.5 text-xs text-[#44475B] dark:text-gray-300 hover:text-black dark:hover:text-white border border-gray-300 dark:border-gray-700 rounded-md hover:border-gray-400 dark:hover:border-gray-600">

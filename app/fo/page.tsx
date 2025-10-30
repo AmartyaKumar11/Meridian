@@ -45,7 +45,10 @@ export default function FOPage() {
                 />
                 <span className="text-[10px] text-gray-400">Ctrl+K</span>
               </div>
-              <button className="flex items-center space-x-1 px-3 py-1.5 text-xs text-[#44475B] hover:text-black border border-gray-300 rounded-md hover:border-gray-400">
+              <button 
+                onClick={() => router.push('/terminal')}
+                className="flex items-center space-x-1 px-3 py-1.5 text-xs text-[#44475B] hover:text-black border border-gray-300 rounded-md hover:border-gray-400"
+              >
                 <span>Terminal</span>
               </button>
               <button className="flex items-center space-x-1 px-3 py-1.5 text-xs text-[#44475B] hover:text-black border border-gray-300 rounded-md hover:border-gray-400">
