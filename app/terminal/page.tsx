@@ -7,7 +7,8 @@ import {
   Mouse, Type, Circle, Square, Triangle,
   TrendingDown, Maximize2, Activity, Eye,
   Lock, Trash2, Grid, BarChart3, List,
-  ChevronRight, Pencil, FileBarChart, CreditCard
+  ChevronRight, Pencil, FileBarChart, CreditCard,
+  Target, Slash, Heart, Brush, Zap, Move
 } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -20,6 +21,9 @@ export default function Terminal() {
   const [isIndicesOpen, setIsIndicesOpen] = useState(false);
   const [selectedInterval, setSelectedInterval] = useState("1d");
   const [activeLeftTool, setActiveLeftTool] = useState("cursor");
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const [showToolsMenu, setShowToolsMenu] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ top: 0 });
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
 
@@ -27,25 +31,155 @@ export default function Terminal() {
     router.push('/');
   };
 
+  const drawingToolsCategories = [
+    {
+      id: "lines",
+      label: "Line Tools",
+      icon: TrendingUp,
+      tools: [
+        { id: "trend-line", label: "Trend Line", shortcut: "" },
+        { id: "arrow", label: "Arrow", shortcut: "" },
+        { id: "ray", label: "Ray", shortcut: "" },
+        { id: "info-line", label: "Info Line", shortcut: "" },
+        { id: "extended-line", label: "Extended Line", shortcut: "" },
+        { id: "trend-angle", label: "Trend Angle", shortcut: "" },
+        { id: "horizontal-line", label: "Horizontal Line", shortcut: "Alt + H" },
+        { id: "horizontal-ray", label: "Horizontal Ray", shortcut: "Alt + J" },
+        { id: "vertical-line", label: "Vertical Line", shortcut: "Alt + V" },
+        { id: "cross-line", label: "Cross Line", shortcut: "Alt + C" },
+        { id: "parallel-channel", label: "Parallel Channel", shortcut: "" },
+        { id: "regression-trend", label: "Regression Trend", shortcut: "" },
+        { id: "flat-top-bottom", label: "Flat Top/Bottom", shortcut: "" },
+        { id: "disjoint-channel", label: "Disjoint Channel", shortcut: "" },
+      ]
+    },
+    {
+      id: "fibonacci",
+      label: "Fibonacci",
+      icon: BarChart3,
+      tools: [
+        { id: "fib-retracement", label: "Fib Retracement", shortcut: "" },
+        { id: "fib-extension", label: "Trend-Based Fib Extension", shortcut: "" },
+        { id: "pitchfork", label: "Pitchfork", shortcut: "" },
+        { id: "schiff-pitchfork", label: "Schiff Pitchfork", shortcut: "" },
+        { id: "modified-pitchfork", label: "Modified Schiff Pitchfork", shortcut: "" },
+        { id: "inside-pitchfork", label: "Inside Pitchfork", shortcut: "" },
+        { id: "fib-channel", label: "Fib Channel", shortcut: "" },
+        { id: "fib-time-zone", label: "Fib Time Zone", shortcut: "" },
+        { id: "fib-speed-fan", label: "Fib Speed Resistance Fan", shortcut: "" },
+        { id: "fib-time", label: "Trend-Based Fib Time", shortcut: "" },
+        { id: "fib-circles", label: "Fib Circles", shortcut: "" },
+      ]
+    },
+    {
+      id: "gann",
+      label: "Gann Tools",
+      icon: Grid,
+      tools: [
+        { id: "gann-box", label: "Gann Box", shortcut: "" },
+        { id: "gann-square-fixed", label: "Gann Square Fixed", shortcut: "" },
+        { id: "gann-square", label: "Gann Square", shortcut: "" },
+        { id: "gann-fan", label: "Gann Fan", shortcut: "" },
+      ]
+    },
+    {
+      id: "shapes",
+      label: "Shapes",
+      icon: Square,
+      tools: [
+        { id: "brush", label: "Brush", shortcut: "" },
+        { id: "highlighter", label: "Highlighter", shortcut: "" },
+        { id: "rectangle", label: "Rectangle", shortcut: "" },
+        { id: "circle", label: "Circle", shortcut: "" },
+        { id: "ellipse", label: "Ellipse", shortcut: "" },
+        { id: "path", label: "Path", shortcut: "" },
+        { id: "curve", label: "Curve", shortcut: "" },
+        { id: "polyline", label: "Polyline", shortcut: "" },
+        { id: "triangle", label: "Triangle", shortcut: "" },
+        { id: "rotated-rectangle", label: "Rotated Rectangle", shortcut: "" },
+        { id: "arc", label: "Arc", shortcut: "" },
+        { id: "double-curve", label: "Double Curve", shortcut: "" },
+      ]
+    },
+    {
+      id: "annotation",
+      label: "Annotation",
+      icon: Type,
+      tools: [
+        { id: "text", label: "Text", shortcut: "" },
+        { id: "anchored-text", label: "Anchored Text", shortcut: "" },
+        { id: "note", label: "Note", shortcut: "" },
+        { id: "anchored-note", label: "Anchored Note", shortcut: "" },
+        { id: "signpost", label: "Signpost", shortcut: "" },
+        { id: "callout", label: "Callout", shortcut: "" },
+        { id: "comment", label: "Comment", shortcut: "" },
+        { id: "price-label", label: "Price Label", shortcut: "" },
+        { id: "price-note", label: "Price Note", shortcut: "" },
+        { id: "arrow-marker", label: "Arrow Marker", shortcut: "" },
+        { id: "arrow-left", label: "Arrow Mark Left", shortcut: "" },
+        { id: "arrow-right", label: "Arrow Mark Right", shortcut: "" },
+        { id: "arrow-up", label: "Arrow Mark Up", shortcut: "" },
+        { id: "arrow-down", label: "Arrow Mark Down", shortcut: "" },
+        { id: "flag-mark", label: "Flag Mark", shortcut: "" },
+      ]
+    },
+    {
+      id: "patterns",
+      label: "Patterns",
+      icon: Activity,
+      tools: [
+        { id: "xabcd", label: "XABCD Pattern", shortcut: "" },
+        { id: "cypher", label: "Cypher Pattern", shortcut: "" },
+        { id: "abcd", label: "ABCD Pattern", shortcut: "" },
+        { id: "triangle-pattern", label: "Triangle Pattern", shortcut: "" },
+        { id: "three-drives", label: "Three Drives Pattern", shortcut: "" },
+        { id: "head-shoulders", label: "Head and Shoulders", shortcut: "" },
+        { id: "elliott-impulse", label: "Elliott Impulse Wave (12345)", shortcut: "" },
+        { id: "elliott-triangle", label: "Elliott Triangle Wave (ABCDE)", shortcut: "" },
+        { id: "elliott-triple", label: "Elliott Triple Combo Wave (WXYZ)", shortcut: "" },
+        { id: "elliott-correction", label: "Elliott Correction Wave (ABC)", shortcut: "" },
+        { id: "elliott-double", label: "Elliott Double Combo Wave (WXY)", shortcut: "" },
+        { id: "cyclic-lines", label: "Cyclic Lines", shortcut: "" },
+        { id: "time-cycles", label: "Time Cycles", shortcut: "" },
+        { id: "sine-line", label: "Sine Line", shortcut: "" },
+      ]
+    },
+    {
+      id: "position",
+      label: "Position & Range",
+      icon: Target,
+      tools: [
+        { id: "long-position", label: "Long Position", shortcut: "" },
+        { id: "short-position", label: "Short Position", shortcut: "" },
+        { id: "forecast", label: "Forecast", shortcut: "" },
+        { id: "date-range", label: "Date Range", shortcut: "" },
+        { id: "price-range", label: "Price Range", shortcut: "" },
+        { id: "date-price-range", label: "Date and Price Range", shortcut: "" },
+        { id: "bars-pattern", label: "Bars Pattern", shortcut: "" },
+        { id: "ghost-feed", label: "Ghost Feed", shortcut: "" },
+        { id: "projection", label: "Projection", shortcut: "" },
+        { id: "volume-profile", label: "Fixed Range Volume Profile", shortcut: "" },
+      ]
+    },
+  ];
+
   const leftSidebarTools = [
-    { id: "cursor", icon: Mouse, label: "Cursor" },
-    { id: "crosshair", icon: Plus, label: "Crosshair" },
-    { id: "line", icon: TrendingUp, label: "Trend Line" },
-    { id: "horizontal", icon: Minus, label: "Horizontal Line" },
-    { id: "ray", icon: Activity, label: "Ray" },
-    { id: "arrow", icon: TrendingDown, label: "Arrow" },
-    { id: "text", icon: Type, label: "Text" },
-    { id: "circle", icon: Circle, label: "Circle" },
-    { id: "rectangle", icon: Square, label: "Rectangle" },
-    { id: "triangle", icon: Triangle, label: "Triangle" },
-    { id: "pen", icon: PenTool, label: "Drawing" },
-    { id: "ruler", icon: Grid, label: "Ruler" },
-    { id: "fibonacci", icon: BarChart3, label: "Fibonacci" },
-    { id: "favorites", icon: Activity, label: "Favorites" },
-    { id: "zoom", icon: Maximize2, label: "Zoom" },
-    { id: "view", icon: Eye, label: "View" },
-    { id: "lock", icon: Lock, label: "Lock" },
-    { id: "delete", icon: Trash2, label: "Delete" },
+    { id: "cursor", icon: Mouse, label: "Cursor", hasSubmenu: false },
+    { id: "line", icon: Slash, label: "Line Tools", hasSubmenu: true, category: "lines" },
+    { id: "gann", icon: Grid, label: "Gann Tools", hasSubmenu: true, category: "gann" },
+    { id: "fibonacci", icon: BarChart3, label: "Fibonacci", hasSubmenu: true, category: "fibonacci" },
+    { id: "patterns", icon: Activity, label: "Patterns", hasSubmenu: true, category: "patterns" },
+    { id: "shapes", icon: Square, label: "Shapes", hasSubmenu: true, category: "shapes" },
+    { id: "annotation", icon: Type, label: "Annotation", hasSubmenu: true, category: "annotation" },
+    { id: "icons", icon: Heart, label: "Icons & Stickers", hasSubmenu: false },
+    { id: "brush", icon: Brush, label: "Brush", hasSubmenu: false },
+    { id: "measure", icon: Zap, label: "Measure", hasSubmenu: false },
+    { id: "zoom", icon: Maximize2, label: "Zoom", hasSubmenu: false },
+    { id: "magnet", icon: Move, label: "Magnet Mode", hasSubmenu: false },
+    { id: "lock", icon: Lock, label: "Lock", hasSubmenu: false },
+    { id: "hide", icon: Eye, label: "Hide/Show", hasSubmenu: false },
+    { id: "settings", icon: Settings, label: "Settings", hasSubmenu: false },
+    { id: "delete", icon: Trash2, label: "Remove Objects", hasSubmenu: false },
   ];
 
   const intervals = ["5y", "1y", "3m", "1m", "5d", "1d"];
@@ -131,22 +265,106 @@ export default function Terminal() {
       {/* Terminal Main Content */}
       <div className={`flex flex-1 overflow-hidden transition-all duration-300 ${isIndicesOpen ? 'blur-[2px] brightness-50' : ''}`}>
         {/* Left Sidebar - Drawing Tools */}
-        <div className="w-14 bg-white dark:bg-[#1A1D24] border-r border-gray-200 dark:border-gray-800 flex flex-col items-center py-2 space-y-1 overflow-y-auto scrollbar-hide">
-          {leftSidebarTools.map((tool) => (
-            <button
-              key={tool.id}
-              onClick={() => setActiveLeftTool(tool.id)}
-              className={`p-1.5 rounded-md transition-colors ${
-                activeLeftTool === tool.id
-                  ? "bg-[#00D09C] text-white"
-                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#1F2228]"
-              }`}
-              title={tool.label}
-            >
-              <tool.icon className="w-4 h-4" />
-            </button>
+        <div className="w-12 bg-[#131722] dark:bg-[#131722] border-r border-gray-800 flex flex-col items-center py-3 space-y-0 overflow-y-auto scrollbar-hide relative">
+          {leftSidebarTools.map((tool, index) => (
+            <div key={tool.id}>
+              <button
+                onClick={(e) => {
+                  if (tool.hasSubmenu) {
+                    const buttonRect = e.currentTarget.getBoundingClientRect();
+                    const category = drawingToolsCategories.find(cat => cat.id === tool.category);
+                    const estimatedMenuHeight = category ? (category.tools.length * 32 + 60) : 400; // 32px per item + header
+                    const viewportHeight = window.innerHeight;
+                    
+                    let topPosition = buttonRect.top;
+                    
+                    // If menu would overflow bottom, shift it up
+                    if (topPosition + estimatedMenuHeight > viewportHeight) {
+                      topPosition = Math.max(0, viewportHeight - estimatedMenuHeight - 10);
+                    }
+                    
+                    setMenuPosition({ top: topPosition });
+                    setExpandedCategory(expandedCategory === tool.category ? null : tool.category || null);
+                    setShowToolsMenu(expandedCategory === tool.category ? false : true);
+                  } else {
+                    // Toggle the tool: deselect if already active
+                    setActiveLeftTool(activeLeftTool === tool.id ? "" : tool.id);
+                    setShowToolsMenu(false);
+                  }
+                }}
+                className={`w-full p-2.5 transition-colors relative ${
+                  activeLeftTool === tool.id || (showToolsMenu && expandedCategory === tool.category)
+                    ? "bg-[#2962FF] text-white"
+                    : "text-gray-400 hover:bg-gray-800"
+                }`}
+                title={tool.label}
+              >
+                <tool.icon className="w-4 h-4 mx-auto" />
+                {tool.hasSubmenu && (
+                  <div className="absolute right-0.5 top-1/2 -translate-y-1/2 w-1 h-1 bg-gray-400 rounded-full"></div>
+                )}
+              </button>
+              {/* Divider after certain tools */}
+              {(index === 0 || index === 6 || index === 8 || index === 10 || index === 13) && (
+                <div className="w-6 h-px bg-gray-800 mx-auto my-1"></div>
+              )}
+            </div>
           ))}
         </div>
+
+        {/* Drawing Tools Expandable Menu */}
+        {showToolsMenu && expandedCategory && (
+          <>
+            <div 
+              className="fixed inset-0 z-30"
+              onClick={() => {
+                setShowToolsMenu(false);
+                setExpandedCategory(null);
+              }}
+            ></div>
+            <div 
+              className="fixed left-12 w-64 max-h-[90vh] bg-[#1E222D] border border-gray-800 shadow-xl z-40 overflow-y-auto scrollbar-hide"
+              style={{ top: `${menuPosition.top}px` }}
+            >
+              <div className="p-2">
+                {drawingToolsCategories
+                  .filter(cat => cat.id === expandedCategory)
+                  .map((category) => (
+                    <div key={category.id}>
+                      <div className="px-2 py-2 border-b border-gray-800">
+                        <div className="flex items-center space-x-2">
+                          <category.icon className="w-4 h-4 text-gray-400" />
+                          <span className="text-xs font-medium text-white">{category.label}</span>
+                        </div>
+                      </div>
+                      <div className="mt-1 space-y-0">
+                        {category.tools.map((tool) => (
+                          <button
+                            key={tool.id}
+                            onClick={() => {
+                              setActiveLeftTool(tool.id);
+                              setShowToolsMenu(false);
+                              setExpandedCategory(null);
+                            }}
+                            className={`w-full flex items-center justify-between px-3 py-2 text-left transition-colors ${
+                              activeLeftTool === tool.id
+                                ? "bg-[#2962FF] text-white"
+                                : "hover:bg-gray-800 text-gray-300"
+                            }`}
+                          >
+                            <span className="text-xs">{tool.label}</span>
+                            {tool.shortcut && (
+                              <span className="text-[10px] text-gray-500">{tool.shortcut}</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Main Chart Area */}
         <div className="flex-1 flex flex-col">
