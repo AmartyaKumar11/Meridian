@@ -14,12 +14,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "../context/ThemeContext";
 import PageTransition from "../components/PageTransition";
+import TradingChart from "../components/TradingChart";
 
 export default function Terminal() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isWatchlistOpen, setIsWatchlistOpen] = useState(true);
   const [isIndicesOpen, setIsIndicesOpen] = useState(false);
   const [selectedInterval, setSelectedInterval] = useState("1d");
+  const [selectedStock, setSelectedStock] = useState("RELIANCE.NS");
   const [activeLeftTool, setActiveLeftTool] = useState("cursor");
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [showToolsMenu, setShowToolsMenu] = useState(false);
@@ -186,11 +188,26 @@ export default function Terminal() {
   const chartTypes = ["5m", "15m", "1h", "1d"];
 
   const watchlistStocks = [
-    { name: "Adani Power", price: "₹162.20", change: "+0.10", percent: "(0.08%)", positive: true },
-    { name: "Tata Motors", price: "₹945.30", change: "+12.50", percent: "(1.34%)", positive: true },
-    { name: "Reliance", price: "₹2,456.70", change: "-23.40", percent: "(0.94%)", positive: false },
-    { name: "HDFC Bank", price: "₹1,678.90", change: "+8.20", percent: "(0.49%)", positive: true },
-    { name: "Infosys", price: "₹1,432.50", change: "-15.60", percent: "(1.08%)", positive: false },
+    { name: "Reliance Industries", symbol: "RELIANCE.NS", price: "₹2,456.70", change: "-23.40", percent: "(0.94%)", positive: false },
+    { name: "TCS", symbol: "TCS.NS", price: "₹3,842.50", change: "+45.30", percent: "(1.19%)", positive: true },
+    { name: "HDFC Bank", symbol: "HDFCBANK.NS", price: "₹1,678.90", change: "+8.20", percent: "(0.49%)", positive: true },
+    { name: "Infosys", symbol: "INFY.NS", price: "₹1,432.50", change: "-15.60", percent: "(1.08%)", positive: false },
+    { name: "ICICI Bank", symbol: "ICICIBANK.NS", price: "₹1,245.80", change: "+18.50", percent: "(1.51%)", positive: true },
+    { name: "Bharti Airtel", symbol: "BHARTIARTL.NS", price: "₹1,567.20", change: "+12.30", percent: "(0.79%)", positive: true },
+    { name: "ITC Ltd", symbol: "ITC.NS", price: "₹478.30", change: "-3.20", percent: "(0.66%)", positive: false },
+    { name: "State Bank of India", symbol: "SBIN.NS", price: "₹845.60", change: "+22.40", percent: "(2.72%)", positive: true },
+    { name: "Larsen & Toubro", symbol: "LT.NS", price: "₹3,698.50", change: "+34.80", percent: "(0.95%)", positive: true },
+    { name: "HCL Technologies", symbol: "HCLTECH.NS", price: "₹1,834.70", change: "-12.50", percent: "(0.68%)", positive: false },
+    { name: "Axis Bank", symbol: "AXISBANK.NS", price: "₹1,178.40", change: "+15.60", percent: "(1.34%)", positive: true },
+    { name: "Wipro", symbol: "WIPRO.NS", price: "₹567.80", change: "-8.30", percent: "(1.44%)", positive: false },
+    { name: "Asian Paints", symbol: "ASIANPAINT.NS", price: "₹2,934.50", change: "+28.70", percent: "(0.99%)", positive: true },
+    { name: "Maruti Suzuki", symbol: "MARUTI.NS", price: "₹12,456.30", change: "+145.60", percent: "(1.18%)", positive: true },
+    { name: "Titan Company", symbol: "TITAN.NS", price: "₹3,567.90", change: "-34.50", percent: "(0.96%)", positive: false },
+    { name: "Sun Pharma", symbol: "SUNPHARMA.NS", price: "₹1,756.40", change: "+23.80", percent: "(1.37%)", positive: true },
+    { name: "Mahindra & Mahindra", symbol: "M&M.NS", price: "₹2,984.60", change: "+45.90", percent: "(1.56%)", positive: true },
+    { name: "Tata Motors", symbol: "TATAMOTORS.NS", price: "₹945.30", change: "+12.50", percent: "(1.34%)", positive: true },
+    { name: "Bajaj Finance", symbol: "BAJFINANCE.NS", price: "₹7,234.50", change: "-78.40", percent: "(1.07%)", positive: false },
+    { name: "Adani Enterprises", symbol: "ADANIENT.NS", price: "₹2,678.90", change: "+34.50", percent: "(1.31%)", positive: true },
   ];
 
   const allIndices = [
@@ -378,14 +395,14 @@ export default function Terminal() {
                 </button>
                 <div>
                   <div className="flex items-center space-x-2">
-                    <span className="text-sm font-semibold text-[#44475B] dark:text-white">ADANI POWER</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">5 • NSE</span>
+                    <span className="text-sm font-semibold text-[#44475B] dark:text-white">
+                      {watchlistStocks.find(s => s.symbol === selectedStock)?.name.toUpperCase() || "APPLE INC"}
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{selectedStock}</span>
                   </div>
                   <div className="flex items-center space-x-3 text-xs">
-                    <span className="text-[#44475B] dark:text-white">O 127.23</span>
-                    <span className="text-[#44475B] dark:text-white">H 127.23</span>
-                    <span className="text-[#44475B] dark:text-white">L 126.22</span>
-                    <span className="text-red-500">C 126.35 -0.82 (-0.64%)</span>
+                    <span className="text-[#44475B] dark:text-white">Interval: {selectedInterval.toUpperCase()}</span>
+                    <span className="text-gray-500 dark:text-gray-400">Live Data</span>
                   </div>
                 </div>
               </div>
@@ -448,15 +465,8 @@ export default function Terminal() {
           </div>
 
           {/* Chart Canvas Area */}
-          <div className="flex-1 bg-white dark:bg-[#1A1D24] relative">
-            {/* Placeholder for Chart */}
-            <div className="absolute inset-0 flex items-center justify-center text-gray-400 dark:text-gray-600">
-              <div className="text-center">
-                <BarChart3 className="w-16 h-16 mx-auto mb-4 opacity-20" />
-                <p className="text-sm">Chart will be displayed here</p>
-                <p className="text-xs mt-2">Requires live data integration</p>
-              </div>
-            </div>
+          <div className="flex-1 bg-[#0C0E12] dark:bg-[#0C0E12] relative">
+            <TradingChart symbol={selectedStock} interval={selectedInterval} />
           </div>
 
           {/* Bottom Timeframe Bar */}
@@ -516,7 +526,10 @@ export default function Terminal() {
                 {watchlistStocks.map((stock, idx) => (
                   <div 
                     key={idx}
-                    className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-[#1F2228] cursor-pointer px-2 -mx-2 rounded"
+                    onClick={() => setSelectedStock(stock.symbol)}
+                    className={`flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-[#1F2228] cursor-pointer px-2 -mx-2 rounded ${
+                      selectedStock === stock.symbol ? 'bg-[#00D09C]/10 border-l-2 border-l-[#00D09C]' : ''
+                    }`}
                   >
                     <div>
                       <div className="text-xs font-medium text-[#44475B] dark:text-white">{stock.name}</div>
