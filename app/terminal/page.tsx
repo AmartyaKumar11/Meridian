@@ -22,12 +22,49 @@ export default function Terminal() {
   const [isIndicesOpen, setIsIndicesOpen] = useState(false);
   const [selectedInterval, setSelectedInterval] = useState("1d");
   const [selectedStock, setSelectedStock] = useState("RELIANCE.NS");
+  const [selectedChartType, setSelectedChartType] = useState("candlestick");
+  const [showChartTypeMenu, setShowChartTypeMenu] = useState(false);
   const [activeLeftTool, setActiveLeftTool] = useState("cursor");
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [showToolsMenu, setShowToolsMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0 });
+  const [ohlcData, setOhlcData] = useState<{
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    change: number;
+    changePercent: number;
+    isBullish: boolean;
+  } | null>(null);
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
+
+  const handleCrosshairMove = (data: { open: number; high: number; low: number; close: number }) => {
+    // Determine if candle is bullish (green) or bearish (red)
+    const isBullish = data.close >= data.open;
+    
+    // Calculate change and percentage based on open vs close of this candle
+    const change = data.close - data.open;
+    const changePercent = data.open !== 0 ? (change / data.open) * 100 : 0;
+    
+    console.log('📍 Crosshair OHLC:', {
+      open: data.open,
+      high: data.high,
+      low: data.low,
+      close: data.close,
+      change,
+      changePercent: changePercent.toFixed(2) + '%',
+      isBullish
+    });
+    
+    setOhlcData({
+      ...data,
+      change: isNaN(change) ? 0 : change,
+      changePercent: isNaN(changePercent) ? 0 : changePercent,
+      isBullish,
+    });
+  };
 
   const handleLogout = () => {
     router.push('/');
@@ -187,27 +224,72 @@ export default function Terminal() {
   const intervals = ["5y", "1y", "3m", "1m", "5d", "1d"];
   const chartTypes = ["5m", "15m", "1h", "1d"];
 
+  const chartStyleOptions = [
+    { id: "bars", label: "Bars", icon: BarChart3 },
+    { id: "candlestick", label: "Candles", icon: Activity },
+    { id: "hollow-candlestick", label: "Hollow candles", icon: Activity },
+    { id: "columns", label: "Columns", icon: BarChart3 },
+    { id: "line", label: "Line", icon: TrendingUp },
+    { id: "area", label: "Area", icon: Activity },
+    { id: "baseline", label: "Baseline", icon: TrendingUp },
+    { id: "high-low", label: "High-low", icon: BarChart3 },
+    { id: "heikin-ashi", label: "Heikin Ashi", icon: Activity },
+    { id: "renko", label: "Renko", icon: Grid },
+    { id: "line-break", label: "Line break", icon: TrendingUp },
+    { id: "kagi", label: "Kagi", icon: Activity },
+    { id: "point-figure", label: "Point & figure", icon: Grid },
+  ];
+
   const watchlistStocks = [
-    { name: "Reliance Industries", symbol: "RELIANCE.NS", price: "₹2,456.70", change: "-23.40", percent: "(0.94%)", positive: false },
-    { name: "TCS", symbol: "TCS.NS", price: "₹3,842.50", change: "+45.30", percent: "(1.19%)", positive: true },
-    { name: "HDFC Bank", symbol: "HDFCBANK.NS", price: "₹1,678.90", change: "+8.20", percent: "(0.49%)", positive: true },
-    { name: "Infosys", symbol: "INFY.NS", price: "₹1,432.50", change: "-15.60", percent: "(1.08%)", positive: false },
-    { name: "ICICI Bank", symbol: "ICICIBANK.NS", price: "₹1,245.80", change: "+18.50", percent: "(1.51%)", positive: true },
-    { name: "Bharti Airtel", symbol: "BHARTIARTL.NS", price: "₹1,567.20", change: "+12.30", percent: "(0.79%)", positive: true },
-    { name: "ITC Ltd", symbol: "ITC.NS", price: "₹478.30", change: "-3.20", percent: "(0.66%)", positive: false },
-    { name: "State Bank of India", symbol: "SBIN.NS", price: "₹845.60", change: "+22.40", percent: "(2.72%)", positive: true },
-    { name: "Larsen & Toubro", symbol: "LT.NS", price: "₹3,698.50", change: "+34.80", percent: "(0.95%)", positive: true },
-    { name: "HCL Technologies", symbol: "HCLTECH.NS", price: "₹1,834.70", change: "-12.50", percent: "(0.68%)", positive: false },
-    { name: "Axis Bank", symbol: "AXISBANK.NS", price: "₹1,178.40", change: "+15.60", percent: "(1.34%)", positive: true },
-    { name: "Wipro", symbol: "WIPRO.NS", price: "₹567.80", change: "-8.30", percent: "(1.44%)", positive: false },
-    { name: "Asian Paints", symbol: "ASIANPAINT.NS", price: "₹2,934.50", change: "+28.70", percent: "(0.99%)", positive: true },
-    { name: "Maruti Suzuki", symbol: "MARUTI.NS", price: "₹12,456.30", change: "+145.60", percent: "(1.18%)", positive: true },
-    { name: "Titan Company", symbol: "TITAN.NS", price: "₹3,567.90", change: "-34.50", percent: "(0.96%)", positive: false },
-    { name: "Sun Pharma", symbol: "SUNPHARMA.NS", price: "₹1,756.40", change: "+23.80", percent: "(1.37%)", positive: true },
-    { name: "Mahindra & Mahindra", symbol: "M&M.NS", price: "₹2,984.60", change: "+45.90", percent: "(1.56%)", positive: true },
-    { name: "Tata Motors", symbol: "TATAMOTORS.NS", price: "₹945.30", change: "+12.50", percent: "(1.34%)", positive: true },
-    { name: "Bajaj Finance", symbol: "BAJFINANCE.NS", price: "₹7,234.50", change: "-78.40", percent: "(1.07%)", positive: false },
     { name: "Adani Enterprises", symbol: "ADANIENT.NS", price: "₹2,678.90", change: "+34.50", percent: "(1.31%)", positive: true },
+    { name: "Adani Ports", symbol: "ADANIPORTS.NS", price: "₹1,234.50", change: "+18.20", percent: "(1.50%)", positive: true },
+    { name: "Apollo Hospital", symbol: "APOLLOHOSP.NS", price: "₹6,543.20", change: "-45.30", percent: "(0.69%)", positive: false },
+    { name: "Asian Paints", symbol: "ASIANPAINT.NS", price: "₹2,934.50", change: "+28.70", percent: "(0.99%)", positive: true },
+    { name: "Axis Bank", symbol: "AXISBANK.NS", price: "₹1,178.40", change: "+15.60", percent: "(1.34%)", positive: true },
+    { name: "Bajaj Auto", symbol: "BAJAJ-AUTO.NS", price: "₹9,876.30", change: "+123.40", percent: "(1.27%)", positive: true },
+    { name: "Bajaj Finance", symbol: "BAJFINANCE.NS", price: "₹7,234.50", change: "-78.40", percent: "(1.07%)", positive: false },
+    { name: "Bajaj Finserv", symbol: "BAJAJFINSV.NS", price: "₹1,645.80", change: "+22.30", percent: "(1.37%)", positive: true },
+    { name: "BPCL", symbol: "BPCL.NS", price: "₹345.60", change: "-5.40", percent: "(1.54%)", positive: false },
+    { name: "Bharti Airtel", symbol: "BHARTIARTL.NS", price: "₹1,567.20", change: "+12.30", percent: "(0.79%)", positive: true },
+    { name: "Britannia", symbol: "BRITANNIA.NS", price: "₹5,234.70", change: "+67.50", percent: "(1.31%)", positive: true },
+    { name: "Cipla", symbol: "CIPLA.NS", price: "₹1,456.80", change: "-18.60", percent: "(1.26%)", positive: false },
+    { name: "Coal India", symbol: "COALINDIA.NS", price: "₹456.30", change: "+8.20", percent: "(1.83%)", positive: true },
+    { name: "Divi's Lab", symbol: "DIVISLAB.NS", price: "₹3,876.50", change: "-45.20", percent: "(1.15%)", positive: false },
+    { name: "Dr. Reddy's", symbol: "DRREDDY.NS", price: "₹6,123.40", change: "+78.30", percent: "(1.30%)", positive: true },
+    { name: "Eicher Motors", symbol: "EICHERMOT.NS", price: "₹4,987.60", change: "-56.40", percent: "(1.12%)", positive: false },
+    { name: "Grasim", symbol: "GRASIM.NS", price: "₹2,456.80", change: "+34.50", percent: "(1.42%)", positive: true },
+    { name: "HCL Technologies", symbol: "HCLTECH.NS", price: "₹1,834.70", change: "-12.50", percent: "(0.68%)", positive: false },
+    { name: "HDFC Bank", symbol: "HDFCBANK.NS", price: "₹1,678.90", change: "+8.20", percent: "(0.49%)", positive: true },
+    { name: "HDFC Life", symbol: "HDFCLIFE.NS", price: "₹678.40", change: "+12.30", percent: "(1.85%)", positive: true },
+    { name: "Hero MotoCorp", symbol: "HEROMOTOCO.NS", price: "₹4,876.50", change: "-67.20", percent: "(1.36%)", positive: false },
+    { name: "Hindalco", symbol: "HINDALCO.NS", price: "₹645.80", change: "+15.60", percent: "(2.47%)", positive: true },
+    { name: "Hindustan Unilever", symbol: "HINDUNILVR.NS", price: "₹2,687.30", change: "-23.40", percent: "(0.86%)", positive: false },
+    { name: "ICICI Bank", symbol: "ICICIBANK.NS", price: "₹1,245.80", change: "+18.50", percent: "(1.51%)", positive: true },
+    { name: "IndusInd Bank", symbol: "INDUSINDBK.NS", price: "₹1,456.70", change: "-23.40", percent: "(1.58%)", positive: false },
+    { name: "Infosys", symbol: "INFY.NS", price: "₹1,432.50", change: "-15.60", percent: "(1.08%)", positive: false },
+    { name: "ITC Ltd", symbol: "ITC.NS", price: "₹478.30", change: "-3.20", percent: "(0.66%)", positive: false },
+    { name: "JSW Steel", symbol: "JSWSTEEL.NS", price: "₹876.50", change: "+23.40", percent: "(2.74%)", positive: true },
+    { name: "Kotak Bank", symbol: "KOTAKBANK.NS", price: "₹1,789.60", change: "+34.50", percent: "(1.97%)", positive: true },
+    { name: "LTIMindtree", symbol: "LTIM.NS", price: "₹5,678.90", change: "-78.40", percent: "(1.36%)", positive: false },
+    { name: "Larsen & Toubro", symbol: "LT.NS", price: "₹3,698.50", change: "+34.80", percent: "(0.95%)", positive: true },
+    { name: "Mahindra & Mahindra", symbol: "M&M.NS", price: "₹2,984.60", change: "+45.90", percent: "(1.56%)", positive: true },
+    { name: "Maruti Suzuki", symbol: "MARUTI.NS", price: "₹12,456.30", change: "+145.60", percent: "(1.18%)", positive: true },
+    { name: "Nestle India", symbol: "NESTLEIND.NS", price: "₹2,567.80", change: "-34.50", percent: "(1.33%)", positive: false },
+    { name: "NTPC", symbol: "NTPC.NS", price: "₹345.60", change: "+8.40", percent: "(2.49%)", positive: true },
+    { name: "ONGC", symbol: "ONGC.NS", price: "₹256.80", change: "+5.60", percent: "(2.23%)", positive: true },
+    { name: "Power Grid", symbol: "POWERGRID.NS", price: "₹289.40", change: "-4.20", percent: "(1.43%)", positive: false },
+    { name: "Reliance Industries", symbol: "RELIANCE.NS", price: "₹2,456.70", change: "-23.40", percent: "(0.94%)", positive: false },
+    { name: "SBI Life", symbol: "SBILIFE.NS", price: "₹1,567.80", change: "+23.40", percent: "(1.52%)", positive: true },
+    { name: "State Bank of India", symbol: "SBIN.NS", price: "₹845.60", change: "+22.40", percent: "(2.72%)", positive: true },
+    { name: "Sun Pharma", symbol: "SUNPHARMA.NS", price: "₹1,756.40", change: "+23.80", percent: "(1.37%)", positive: true },
+    { name: "Tata Consumer", symbol: "TATACONSUM.NS", price: "₹1,234.50", change: "-18.60", percent: "(1.48%)", positive: false },
+    { name: "Tata Motors", symbol: "TATAMOTORS.NS", price: "₹945.30", change: "+12.50", percent: "(1.34%)", positive: true },
+    { name: "Tata Steel", symbol: "TATASTEEL.NS", price: "₹145.80", change: "+3.40", percent: "(2.39%)", positive: true },
+    { name: "Tech Mahindra", symbol: "TECHM.NS", price: "₹1,678.90", change: "-23.40", percent: "(1.37%)", positive: false },
+    { name: "Titan Company", symbol: "TITAN.NS", price: "₹3,567.90", change: "-34.50", percent: "(0.96%)", positive: false },
+    { name: "Trent", symbol: "TRENT.NS", price: "₹6,789.40", change: "+123.50", percent: "(1.85%)", positive: true },
+    { name: "UltraTech Cement", symbol: "ULTRACEMCO.NS", price: "₹10,234.60", change: "-145.30", percent: "(1.40%)", positive: false },
+    { name: "Wipro", symbol: "WIPRO.NS", price: "₹567.80", change: "-8.30", percent: "(1.44%)", positive: false },
   ];
 
   const allIndices = [
@@ -393,16 +475,65 @@ export default function Terminal() {
                 <button className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#1F2228]">
                   <Plus className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                 </button>
-                <div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm font-semibold text-[#44475B] dark:text-white">
-                      {watchlistStocks.find(s => s.symbol === selectedStock)?.name.toUpperCase() || "APPLE INC"}
-                    </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{selectedStock}</span>
+                <div className="flex items-center space-x-3">
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm font-semibold text-[#44475B] dark:text-white">
+                        {watchlistStocks.find(s => s.symbol === selectedStock)?.name.toUpperCase() || "RELIANCE INDUSTRIES"}
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">{selectedStock}</span>
+                    </div>
+                    <div className="flex items-center space-x-3 text-xs mt-0.5">
+                      <span className="text-[#44475B] dark:text-white">Interval: {selectedInterval.toUpperCase()}</span>
+                      <span className="text-gray-500 dark:text-gray-400">Live Data</span>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-3 text-xs">
-                    <span className="text-[#44475B] dark:text-white">Interval: {selectedInterval.toUpperCase()}</span>
-                    <span className="text-gray-500 dark:text-gray-400">Live Data</span>
+                  
+                  {/* Chart Type Selector */}
+                  <div className="relative">
+                    <button 
+                      onClick={() => setShowChartTypeMenu(!showChartTypeMenu)}
+                      className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#1F2228] rounded border border-gray-300 dark:border-gray-700"
+                    >
+                      {(() => {
+                        const ChartIcon = chartStyleOptions.find(opt => opt.id === selectedChartType)?.icon || Activity;
+                        return <ChartIcon className="w-3.5 h-3.5" />;
+                      })()}
+                      <span>{chartStyleOptions.find(opt => opt.id === selectedChartType)?.label || "Candles"}</span>
+                      <ChevronRight className={`w-3 h-3 transition-transform ${showChartTypeMenu ? 'rotate-90' : 'rotate-0'}`} />
+                    </button>
+
+                    {/* Chart Type Dropdown */}
+                    {showChartTypeMenu && (
+                      <>
+                        <div 
+                          className="fixed inset-0 z-30"
+                          onClick={() => setShowChartTypeMenu(false)}
+                        ></div>
+                        <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-[#1E222D] border border-gray-200 dark:border-gray-700 rounded-md shadow-xl z-40 py-1">
+                          {chartStyleOptions.map((option) => {
+                            const OptionIcon = option.icon;
+                            return (
+                              <button
+                                key={option.id}
+                                onClick={() => {
+                                  setSelectedChartType(option.id);
+                                  setShowChartTypeMenu(false);
+                                }}
+                                className={`w-full flex items-center space-x-2 px-3 py-2 text-xs text-left transition-colors ${
+                                  selectedChartType === option.id
+                                    ? "bg-[#00D09C]/10 text-[#00D09C]"
+                                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                }`}
+                              >
+                                <OptionIcon className="w-3.5 h-3.5" />
+                                <span>{option.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -466,7 +597,49 @@ export default function Terminal() {
 
           {/* Chart Canvas Area */}
           <div className="flex-1 bg-[#0C0E12] dark:bg-[#0C0E12] relative">
-            <TradingChart symbol={selectedStock} interval={selectedInterval} />
+            {/* OHLC Display - Top Left Corner */}
+            {ohlcData && (
+              <div className="absolute top-4 left-4 z-20 bg-[#1A1D24]/90 backdrop-blur-sm px-3 py-2 rounded-md shadow-lg">
+                <div className="flex items-center space-x-3 text-xs">
+                  <div className="flex items-center space-x-1">
+                    <span className="text-gray-400">O</span>
+                    <span className={`font-medium ${ohlcData.isBullish ? 'text-[#00D09C]' : 'text-[#EB4D5C]'}`}>
+                      {ohlcData.open.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <span className="text-gray-400">H</span>
+                    <span className={`font-medium ${ohlcData.isBullish ? 'text-[#00D09C]' : 'text-[#EB4D5C]'}`}>
+                      {ohlcData.high.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <span className="text-gray-400">L</span>
+                    <span className={`font-medium ${ohlcData.isBullish ? 'text-[#00D09C]' : 'text-[#EB4D5C]'}`}>
+                      {ohlcData.low.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <span className="text-gray-400">C</span>
+                    <span className={`font-medium ${ohlcData.isBullish ? 'text-[#00D09C]' : 'text-[#EB4D5C]'}`}>
+                      {ohlcData.close.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-1 pl-2 border-l border-gray-700">
+                    <span className={`font-medium ${ohlcData.isBullish ? 'text-[#00D09C]' : 'text-[#EB4D5C]'}`}>
+                      {ohlcData.change >= 0 ? '+' : ''}{ohlcData.change?.toFixed(2) || '0.00'} ({ohlcData.changePercent >= 0 ? '+' : ''}{ohlcData.changePercent?.toFixed(2) || '0.00'}%)
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <TradingChart 
+              symbol={selectedStock} 
+              interval={selectedInterval} 
+              chartType={selectedChartType}
+              onCrosshairMove={handleCrosshairMove}
+            />
           </div>
 
           {/* Bottom Timeframe Bar */}
