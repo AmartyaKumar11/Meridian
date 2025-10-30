@@ -1,9 +1,14 @@
 "use client";
 
-import { Bell, Search, User, TrendingUp, TrendingDown, Bookmark, BarChart3, FileText, Target, Zap, Wallet, Calendar, Filter, Lightbulb, Truck, Flame, Wheat, Briefcase, Laptop } from "lucide-react";
+import { Bell, Search, User, TrendingUp, TrendingDown, Bookmark, BarChart3, FileText, Target, Zap, Wallet, Calendar, Filter, Lightbulb, Truck, Flame, Wheat, Briefcase, Laptop, CreditCard, FileBarChart, Headphones, Sun, LogOut } from "lucide-react";
+import PageTransition from "../components/PageTransition";
+import { useState } from "react";
 
 export default function Dashboard() {
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+
   return (
+    <PageTransition>
     <div className="min-h-screen bg-[#F8F9FA]">
       {/* Top Navigation */}
       <nav className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50">
@@ -13,11 +18,11 @@ export default function Dashboard() {
             <div className="flex items-center space-x-8">
               <div className="flex items-center space-x-2">
                 <div className="w-9 h-9 bg-gradient-to-br from-[#00D09C] to-[#00B386] rounded-full"></div>
-                <span className="text-base font-semibold text-[#44475B]">Stocks</span>
               </div>
               <div className="hidden md:flex items-center space-x-6 text-xs">
-                <a href="#" className="text-[#44475B] hover:text-black">F&O</a>
-                <a href="#" className="text-[#44475B] hover:text-black">Mutual Funds</a>
+                <a href="/dashboard" className="text-black font-medium">Stocks</a>
+                <a href="/fo" className="text-[#7C7E8C] hover:text-black">F&O</a>
+                <a href="#" className="text-[#7C7E8C] hover:text-black">Mutual Funds</a>
               </div>
             </div>
 
@@ -37,7 +42,91 @@ export default function Dashboard() {
               </button>
               <button className="text-xs text-[#44475B] hover:text-black">915.trade</button>
               <Bell className="w-4 h-4 text-gray-600 cursor-pointer" />
-              <div className="w-7 h-7 bg-gradient-to-br from-orange-400 to-red-500 rounded-full cursor-pointer"></div>
+              
+              <div className="relative">
+                <div 
+                  className="w-7 h-7 bg-gradient-to-br from-orange-400 to-red-500 rounded-full cursor-pointer"
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                ></div>
+                
+                {isProfileOpen && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setIsProfileOpen(false)}
+                    ></div>
+                    <div className="absolute right-0 top-10 w-72 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                      <div className="p-4 border-b border-gray-200">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <p className="text-sm font-medium text-[#44475B]">Amartya Kumar</p>
+                            <p className="text-xs text-[#7C7E8C]">kumaramartya11@gmail.com</p>
+                          </div>
+                          <button className="text-[#7C7E8C] hover:text-[#44475B]">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                          </button>
+                        </div>
+                        <div className="bg-[#F8F9FA] rounded-lg p-2 mt-2">
+                          <p className="text-xs text-[#7C7E8C] mb-1">Balance</p>
+                          <p className="text-sm font-medium text-[#44475B]">₹0.00 <span className="text-xs text-[#7C7E8C]">Stocks, F&O balance</span></p>
+                        </div>
+                      </div>
+                      
+                      <div className="py-1">
+                        <button className="w-full px-4 py-2.5 text-left text-sm text-[#44475B] hover:bg-gray-50 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <CreditCard className="w-4 h-4 text-[#7C7E8C]" />
+                            <span>All Orders</span>
+                          </div>
+                          <svg className="w-4 h-4 text-[#7C7E8C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                        <button className="w-full px-4 py-2.5 text-left text-sm text-[#44475B] hover:bg-gray-50 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <FileBarChart className="w-4 h-4 text-[#7C7E8C]" />
+                            <span>Bank Details</span>
+                          </div>
+                          <svg className="w-4 h-4 text-[#7C7E8C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                        <button className="w-full px-4 py-2.5 text-left text-sm text-[#44475B] hover:bg-gray-50 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Headphones className="w-4 h-4 text-[#7C7E8C]" />
+                            <span>24x7 Customer Support</span>
+                          </div>
+                          <svg className="w-4 h-4 text-[#7C7E8C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                        <button className="w-full px-4 py-2.5 text-left text-sm text-[#44475B] hover:bg-gray-50 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <FileText className="w-4 h-4 text-[#7C7E8C]" />
+                            <span>Reports</span>
+                          </div>
+                          <svg className="w-4 h-4 text-[#7C7E8C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                      </div>
+                      
+                      <div className="border-t border-gray-200 p-3 flex items-center justify-between">
+                        <button className="p-1.5 hover:bg-gray-100 rounded">
+                          <Sun className="w-4 h-4 text-[#7C7E8C]" />
+                        </button>
+                        <button className="text-sm text-[#44475B] hover:underline flex items-center gap-2">
+                          <LogOut className="w-4 h-4" />
+                          Log out
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -60,31 +149,34 @@ export default function Dashboard() {
       <div className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-[96px] z-30">
         <div className="max-w-[1400px] mx-auto px-6 py-2">
           <div className="flex items-center space-x-8 text-xs overflow-x-auto">
-            <div className="flex items-center space-x-2 whitespace-nowrap">
-              <span className="text-[#44475B] font-medium">NIFTY</span>
-              <span className="text-[#44475B]">26,053.90</span>
-              <span className="text-green-600">117.70 (0.45%)</span>
-            </div>
-            <div className="flex items-center space-x-2 whitespace-nowrap">
-              <span className="text-[#44475B] font-medium">SENSEX</span>
-              <span className="text-[#44475B]">84,997.13</span>
-              <span className="text-green-600">368.97 (0.44%)</span>
-            </div>
-            <div className="flex items-center space-x-2 whitespace-nowrap">
-              <span className="text-[#44475B] font-medium">BANKNIFTY</span>
-              <span className="text-[#44475B]">58,385.25</span>
-              <span className="text-green-600">171.15 (0.29%)</span>
-            </div>
-            <div className="flex items-center space-x-2 whitespace-nowrap">
-              <span className="text-[#44475B] font-medium">MIDCPNIFTY</span>
-              <span className="text-[#44475B]">13,430.75</span>
-              <span className="text-green-600">64.55 (0.48%)</span>
-            </div>
-            <div className="flex items-center space-x-2 whitespace-nowrap">
-              <span className="text-[#44475B] font-medium">FINNIFTY</span>
-              <span className="text-[#44475B]">27,587</span>
-              <span className="text-green-600">82.35 (0.30%)</span>
-            </div>
+            {[
+              { name: "NIFTY", price: "26,053.90", change: "117.70 (0.45%)", isPositive: true },
+              { name: "SENSEX", price: "84,997.13", change: "368.97 (0.44%)", isPositive: true },
+              { name: "BANKNIFTY", price: "58,385.25", change: "171.15 (0.29%)", isPositive: true },
+              { name: "MIDCPNIFTY", price: "13,430.75", change: "64.55 (0.48%)", isPositive: true },
+              { name: "FINNIFTY", price: "27,587", change: "82.35 (0.30%)", isPositive: true },
+            ].map((index) => (
+              <div key={index.name} className="relative group">
+                <div className="flex items-center space-x-2 whitespace-nowrap cursor-pointer">
+                  <span className="text-[#44475B] font-medium">{index.name}</span>
+                  <span className="text-[#44475B]">{index.price}</span>
+                  <span className={index.isPositive ? "text-green-600" : "text-red-600"}>
+                    {index.change}
+                  </span>
+                </div>
+                
+                <div className="absolute top-full left-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 p-2 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity duration-200 z-50 whitespace-nowrap">
+                  <button className="flex items-center gap-2 px-3 py-1.5 text-xs text-[#44475B] hover:bg-gray-50 rounded w-full text-left">
+                    <BarChart3 className="w-3.5 h-3.5" />
+                    Option chain
+                  </button>
+                  <button className="flex items-center gap-2 px-3 py-1.5 text-xs text-[#44475B] hover:bg-gray-50 rounded w-full text-left">
+                    <Target className="w-3.5 h-3.5" />
+                    Terminal
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -573,5 +665,6 @@ export default function Dashboard() {
         </div>
       </footer>
     </div>
+    </PageTransition>
   );
 }
