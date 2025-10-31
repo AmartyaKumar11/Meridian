@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { createChart, ColorType } from 'lightweight-charts';
+import { useTheme } from '../context/ThemeContext';
 
 interface TradingChartProps {
   symbol: string;
@@ -19,6 +20,7 @@ export default function TradingChart({ symbol, interval, chartType, onCrosshairM
   const allDataRef = useRef<any[]>([]);
   const oldestTimestampRef = useRef<number>(0);
   const isLoadingMoreRef = useRef<boolean>(false);
+  const { theme } = useTheme();
 
   // Validate and sort data to prevent assertion errors
   const validateAndSortData = (data: any[]) => {
@@ -397,24 +399,32 @@ export default function TradingChart({ symbol, interval, chartType, onCrosshairM
       height: chartContainerRef.current.clientHeight
     });
 
+    // Theme-based colors
+    const isDark = theme === 'dark';
+    const bgColor = isDark ? '#0C0E12' : '#FFFFFF';
+    const textColor = isDark ? '#9B9B9B' : '#44475B';
+    const gridColor = isDark ? '#1A1D24' : '#E8E8E8';
+    const borderColor = isDark ? '#2B2B43' : '#D1D4DC';
+    const crosshairColor = isDark ? '#758696' : '#9598A1';
+
     const chart = createChart(chartContainerRef.current, {
       layout: {
-        background: { type: ColorType.Solid, color: '#0C0E12' },
-        textColor: '#9B9B9B',
+        background: { type: ColorType.Solid, color: bgColor },
+        textColor: textColor,
       },
       grid: {
-        vertLines: { color: '#1A1D24' },
-        horzLines: { color: '#1A1D24' },
+        vertLines: { color: gridColor },
+        horzLines: { color: gridColor },
       },
       width: chartContainerRef.current.clientWidth,
       height: chartContainerRef.current.clientHeight,
       timeScale: {
         timeVisible: true,
         secondsVisible: false,
-        borderColor: '#2B2B43',
+        borderColor: borderColor,
       },
       rightPriceScale: {
-        borderColor: '#2B2B43',
+        borderColor: borderColor,
         scaleMargins: {
           top: 0.1,
           bottom: 0.2,
@@ -424,15 +434,15 @@ export default function TradingChart({ symbol, interval, chartType, onCrosshairM
         mode: 0,
         vertLine: {
           width: 1,
-          color: '#758696',
+          color: crosshairColor,
           style: 2,
-          labelBackgroundColor: '#363C4E',
+          labelBackgroundColor: isDark ? '#363C4E' : '#D1D4DC',
         },
         horzLine: {
           width: 1,
-          color: '#758696',
+          color: crosshairColor,
           style: 2,
-          labelBackgroundColor: '#363C4E',
+          labelBackgroundColor: isDark ? '#363C4E' : '#D1D4DC',
         },
       },
     });
@@ -645,6 +655,46 @@ export default function TradingChart({ symbol, interval, chartType, onCrosshairM
     }
   }, [symbol, interval]);
 
+  // Update chart colors when theme changes
+  useEffect(() => {
+    if (!chartRef.current) return;
+
+    const isDark = theme === 'dark';
+    const bgColor = isDark ? '#0C0E12' : '#FFFFFF';
+    const textColor = isDark ? '#9B9B9B' : '#44475B';
+    const gridColor = isDark ? '#1A1D24' : '#E8E8E8';
+    const borderColor = isDark ? '#2B2B43' : '#D1D4DC';
+    const crosshairColor = isDark ? '#758696' : '#9598A1';
+    const labelBgColor = isDark ? '#363C4E' : '#D1D4DC';
+
+    chartRef.current.applyOptions({
+      layout: {
+        background: { type: ColorType.Solid, color: bgColor },
+        textColor: textColor,
+      },
+      grid: {
+        vertLines: { color: gridColor },
+        horzLines: { color: gridColor },
+      },
+      timeScale: {
+        borderColor: borderColor,
+      },
+      rightPriceScale: {
+        borderColor: borderColor,
+      },
+      crosshair: {
+        vertLine: {
+          color: crosshairColor,
+          labelBackgroundColor: labelBgColor,
+        },
+        horzLine: {
+          color: crosshairColor,
+          labelBackgroundColor: labelBgColor,
+        },
+      },
+    });
+  }, [theme]);
+
   // Update series when chart type changes
   useEffect(() => {
     if (!chartRef.current || !chartContainerRef.current) return;
@@ -785,12 +835,12 @@ export default function TradingChart({ symbol, interval, chartType, onCrosshairM
   return (
     <div className="relative w-full h-full min-h-[400px]">
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-[#0C0E12] z-10 pointer-events-none">
-          <div className="text-gray-400 text-sm">Loading chart data...</div>
+        <div className="absolute inset-0 flex items-center justify-center bg-white dark:bg-[#0C0E12] z-10 pointer-events-none">
+          <div className="text-gray-600 dark:text-gray-400 text-sm">Loading chart data...</div>
         </div>
       )}
       {isLoadingMore && !isLoading && (
-        <div className="absolute top-4 left-4 bg-[#1A1D24] text-gray-300 text-xs px-3 py-2 rounded-md shadow-lg z-10 flex items-center space-x-2 pointer-events-none">
+        <div className="absolute top-4 left-4 bg-gray-100 dark:bg-[#1A1D24] text-gray-700 dark:text-gray-300 text-xs px-3 py-2 rounded-md shadow-lg z-10 flex items-center space-x-2 pointer-events-none">
           <div className="w-3 h-3 border-2 border-[#00D09C] border-t-transparent rounded-full animate-spin"></div>
           <span>Loading historical data...</span>
         </div>

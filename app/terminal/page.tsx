@@ -596,36 +596,36 @@ export default function Terminal() {
           </div>
 
           {/* Chart Canvas Area */}
-          <div className="flex-1 bg-[#0C0E12] dark:bg-[#0C0E12] relative">
+          <div className="flex-1 bg-white dark:bg-[#0C0E12] relative transition-colors">
             {/* OHLC Display - Top Left Corner */}
             {ohlcData && (
-              <div className="absolute top-4 left-4 z-20 bg-[#1A1D24]/90 backdrop-blur-sm px-3 py-2 rounded-md shadow-lg">
+              <div className="absolute top-4 left-4 z-20 bg-gray-100/90 dark:bg-[#1A1D24]/90 backdrop-blur-sm px-3 py-2 rounded-md shadow-lg">
                 <div className="flex items-center space-x-3 text-xs">
                   <div className="flex items-center space-x-1">
-                    <span className="text-gray-400">O</span>
+                    <span className="text-gray-500 dark:text-gray-400">O</span>
                     <span className={`font-medium ${ohlcData.isBullish ? 'text-[#00D09C]' : 'text-[#EB4D5C]'}`}>
                       {ohlcData.open.toFixed(2)}
                     </span>
                   </div>
                   <div className="flex items-center space-x-1">
-                    <span className="text-gray-400">H</span>
+                    <span className="text-gray-500 dark:text-gray-400">H</span>
                     <span className={`font-medium ${ohlcData.isBullish ? 'text-[#00D09C]' : 'text-[#EB4D5C]'}`}>
                       {ohlcData.high.toFixed(2)}
                     </span>
                   </div>
                   <div className="flex items-center space-x-1">
-                    <span className="text-gray-400">L</span>
+                    <span className="text-gray-500 dark:text-gray-400">L</span>
                     <span className={`font-medium ${ohlcData.isBullish ? 'text-[#00D09C]' : 'text-[#EB4D5C]'}`}>
                       {ohlcData.low.toFixed(2)}
                     </span>
                   </div>
                   <div className="flex items-center space-x-1">
-                    <span className="text-gray-400">C</span>
+                    <span className="text-gray-500 dark:text-gray-400">C</span>
                     <span className={`font-medium ${ohlcData.isBullish ? 'text-[#00D09C]' : 'text-[#EB4D5C]'}`}>
                       {ohlcData.close.toFixed(2)}
                     </span>
                   </div>
-                  <div className="flex items-center space-x-1 pl-2 border-l border-gray-700">
+                  <div className="flex items-center space-x-1 pl-2 border-l border-gray-300 dark:border-gray-700">
                     <span className={`font-medium ${ohlcData.isBullish ? 'text-[#00D09C]' : 'text-[#EB4D5C]'}`}>
                       {ohlcData.change >= 0 ? '+' : ''}{ohlcData.change?.toFixed(2) || '0.00'} ({ohlcData.changePercent >= 0 ? '+' : ''}{ohlcData.changePercent?.toFixed(2) || '0.00'}%)
                     </span>

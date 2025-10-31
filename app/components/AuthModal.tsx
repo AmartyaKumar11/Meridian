@@ -72,7 +72,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
         <div 
-          className="bg-white rounded-lg shadow-2xl max-w-5xl w-full h-[600px] overflow-hidden flex relative animate-bounce-in pointer-events-auto"
+          className="bg-white dark:bg-[#1A1D24] rounded-lg shadow-2xl max-w-5xl w-full h-[600px] overflow-hidden flex relative animate-bounce-in pointer-events-auto transition-colors"
           style={{
             animation: 'bounceIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
@@ -81,7 +81,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 text-gray-400 hover:text-gray-600 cursor-pointer transition-colors"
+          className="absolute top-4 right-4 z-10 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer transition-colors"
         >
           <X className="w-6 h-6" />
         </button>
@@ -139,15 +139,15 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         </div>
 
         {/* Right Side - Auth Form */}
-        <div className="w-1/2 p-12 flex flex-col justify-center">
-          <h2 className="text-3xl font-bold text-[#44475B] mb-8 text-center">
+        <div className="w-1/2 p-12 flex flex-col justify-center bg-white dark:bg-[#1A1D24] transition-colors">
+          <h2 className="text-3xl font-bold text-[#44475B] dark:text-white mb-8 text-center transition-colors">
             Welcome to Meridian
           </h2>
 
           {/* Google Sign In Button */}
           <button 
             onClick={handleGoogleAuth}
-            className="w-full flex items-center justify-center gap-3 border-2 border-gray-300 rounded-md py-2.5 px-6 mb-6 hover:bg-gray-50 transition-colors cursor-pointer"
+            className="w-full flex items-center justify-center gap-3 border-2 border-gray-300 dark:border-gray-700 rounded-md py-2.5 px-6 mb-6 hover:bg-gray-50 dark:hover:bg-[#1F2228] transition-colors cursor-pointer"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
@@ -167,21 +167,21 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            <span className="text-[#44475B] font-medium text-sm">Continue with Google</span>
+            <span className="text-[#44475B] dark:text-gray-300 font-medium text-sm transition-colors">Continue with Google</span>
           </button>
 
           {/* Divider */}
           <div className="flex items-center gap-4 mb-6">
-            <div className="flex-1 h-px bg-gray-300" />
-            <span className="text-gray-500 text-sm">Or</span>
-            <div className="flex-1 h-px bg-gray-300" />
+            <div className="flex-1 h-px bg-gray-300 dark:bg-gray-700" />
+            <span className="text-gray-500 dark:text-gray-400 text-sm">Or</span>
+            <div className="flex-1 h-px bg-gray-300 dark:bg-gray-700" />
           </div>
 
           {/* Email Input */}
           <input
             type="email"
             placeholder="Your Email Address"
-            className="w-full border-b-2 border-gray-300 py-3 px-1 text-[#44475B] placeholder-gray-400 focus:outline-none focus:border-[#00B386] transition-colors mb-6"
+            className="w-full border-b-2 border-gray-300 dark:border-gray-700 py-3 px-1 text-[#44475B] dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-[#00B386] dark:focus:border-[#00B386] transition-colors mb-6 bg-transparent"
           />
 
           {/* Continue Button */}
@@ -193,17 +193,17 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           </button>
 
           {/* Terms */}
-          <p className="text-xs text-gray-500 text-center">
+          <p className="text-xs text-gray-500 dark:text-gray-400 text-center transition-colors">
             By proceeding, I agree to{" "}
-            <a href="#" className="text-[#44475B] underline hover:text-black">
+            <a href="#" className="text-[#44475B] dark:text-gray-300 underline hover:text-black dark:hover:text-white">
               T&C
             </a>
             ,{" "}
-            <a href="#" className="text-[#44475B] underline hover:text-black">
+            <a href="#" className="text-[#44475B] dark:text-gray-300 underline hover:text-black dark:hover:text-white">
               Privacy Policy
             </a>{" "}
             &{" "}
-            <a href="#" className="text-[#44475B] underline hover:text-black">
+            <a href="#" className="text-[#44475B] dark:text-gray-300 underline hover:text-black dark:hover:text-white">
               Tariff Rates
             </a>
           </p>
