@@ -798,12 +798,35 @@ export default function TradingChart({ symbol, interval, chartType, onCrosshairM
         timeVisible: true,
         secondsVisible: false,
         borderColor: borderColor,
+        rightOffset: 5,
+        barSpacing: 6,
+        fixLeftEdge: false,
+        fixRightEdge: false,
       },
       rightPriceScale: {
         borderColor: borderColor,
         scaleMargins: {
           top: 0.1,
           bottom: 0.2,
+        },
+      },
+      localization: {
+        timeFormatter: (timestamp: number) => {
+          const date = new Date(timestamp * 1000);
+          const hours = date.getHours().toString().padStart(2, '0');
+          const minutes = date.getMinutes().toString().padStart(2, '0');
+          const day = date.getDate().toString().padStart(2, '0');
+          const month = (date.getMonth() + 1).toString().padStart(2, '0');
+          const year = date.getFullYear();
+          
+          // Format based on interval
+          if (interval === '1d' || interval === '5d') {
+            // Show time for intraday
+            return `${day}/${month}/${year} ${hours}:${minutes}`;
+          } else {
+            // Show date only for longer timeframes
+            return `${day}/${month}/${year}`;
+          }
         },
       },
       crosshair: {
