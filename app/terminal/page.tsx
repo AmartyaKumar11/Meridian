@@ -7,7 +7,7 @@ import {
   Mouse, Type, Circle, Square, Triangle,
   TrendingDown, Maximize2, Activity, Eye,
   Lock, Trash2, Grid, BarChart3, List,
-  ChevronRight, Pencil, FileBarChart, CreditCard,
+  ChevronRight, ChevronLeft, Pencil, FileBarChart, CreditCard,
   Target, Slash, Heart, Brush, Zap, Move
 } from "lucide-react";
 import { useState } from "react";
@@ -28,6 +28,10 @@ export default function Terminal() {
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [showToolsMenu, setShowToolsMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0 });
+  const [showIndicatorsMenu, setShowIndicatorsMenu] = useState(false);
+  const [activeIndicators, setActiveIndicators] = useState<string[]>([]);
+  const [searchIndicator, setSearchIndicator] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [ohlcData, setOhlcData] = useState<{
     open: number;
     high: number;
@@ -39,6 +43,28 @@ export default function Terminal() {
   } | null>(null);
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
+
+  const toggleIndicator = (indicatorId: string) => {
+    setActiveIndicators(prev => 
+      prev.includes(indicatorId) 
+        ? prev.filter(id => id !== indicatorId)
+        : [...prev, indicatorId]
+    );
+  };
+
+  const getIndicatorsByCategory = (category: string) => {
+    if (category === "All") return technicalIndicators;
+    return technicalIndicators.filter(ind => ind.category === category);
+  };
+
+  const getFilteredIndicators = () => {
+    if (searchIndicator) {
+      return technicalIndicators.filter(ind => 
+        ind.name.toLowerCase().includes(searchIndicator.toLowerCase())
+      );
+    }
+    return technicalIndicators;
+  };
 
   const handleCrosshairMove = (data: { open: number; high: number; low: number; close: number }) => {
     // Determine if candle is bullish (green) or bearish (red)
@@ -224,6 +250,42 @@ export default function Terminal() {
   const intervals = ["5y", "1y", "3m", "1m", "5d", "1d"];
   const chartTypes = ["5m", "15m", "1h", "1d"];
 
+  const technicalIndicators = [
+    { id: "ma-20", name: "Moving Average (20)", category: "Trend", color: "#2196F3" },
+    { id: "ma-50", name: "Moving Average (50)", category: "Trend", color: "#FF9800" },
+    { id: "ma-200", name: "Moving Average (200)", category: "Trend", color: "#F44336" },
+    { id: "ema-20", name: "Exponential Moving Average (20)", category: "Trend", color: "#00BCD4" },
+    { id: "ema-50", name: "Exponential Moving Average (50)", category: "Trend", color: "#FFC107" },
+    { id: "ema-200", name: "Exponential Moving Average (200)", category: "Trend", color: "#E91E63" },
+    { id: "rsi", name: "Relative Strength Index (RSI)", category: "Momentum", color: "#9C27B0" },
+    { id: "macd", name: "MACD", category: "Momentum", color: "#3F51B5" },
+    { id: "bollinger", name: "Bollinger Bands", category: "Volatility", color: "#607D8B" },
+    { id: "volume", name: "Volume", category: "Volume", color: "#4CAF50" },
+    { id: "atr", name: "Average True Range (ATR)", category: "Volatility", color: "#FF5722" },
+    { id: "obv", name: "On-Balance Volume (OBV)", category: "Volume", color: "#8BC34A" },
+    { id: "roc", name: "Rate of Change (ROC)", category: "Momentum", color: "#CDDC39" },
+    { id: "stochastic", name: "Stochastic Oscillator", category: "Momentum", color: "#FFEB3B" },
+    { id: "cci", name: "Commodity Channel Index (CCI)", category: "Momentum", color: "#00E676" },
+    { id: "momentum", name: "Momentum Indicator", category: "Momentum", color: "#76FF03" },
+    { id: "williams", name: "Williams %R", category: "Momentum", color: "#C6FF00" },
+    { id: "cmf", name: "Chaikin Money Flow (CMF)", category: "Volume", color: "#AEEA00" },
+    { id: "adl", name: "Accumulation/Distribution Line", category: "Volume", color: "#64DD17" },
+    { id: "fibonacci", name: "Fibonacci Retracement", category: "Support/Resistance", color: "#FFD600" },
+    { id: "sar", name: "Parabolic SAR", category: "Trend", color: "#FFAB00" },
+    { id: "vwap", name: "VWAP", category: "Volume", color: "#FF6D00" },
+    { id: "ichimoku", name: "Ichimoku Cloud", category: "Trend", color: "#DD2C00" },
+    { id: "pivot", name: "Pivot Points", category: "Support/Resistance", color: "#D50000" },
+  ];
+
+  const indicatorCategories = [
+    "All",
+    "Trend",
+    "Momentum",
+    "Volatility",
+    "Volume",
+    "Support/Resistance"
+  ];
+
   const chartStyleOptions = [
     { id: "bars", label: "Bars", icon: BarChart3 },
     { id: "candlestick", label: "Candles", icon: Activity },
@@ -241,6 +303,14 @@ export default function Terminal() {
   ];
 
   const watchlistStocks = [
+    // Major Indices
+    { name: "Nifty 50", symbol: "^NSEI", price: "₹25,867.10", change: "-186.80", percent: "(0.72%)", positive: false },
+    { name: "Bank Nifty", symbol: "^NSEBANK", price: "₹58,033.70", change: "-351.55", percent: "(0.60%)", positive: false },
+    { name: "Nifty IT", symbol: "^CNXIT", price: "₹42,156.80", change: "+234.50", percent: "(0.56%)", positive: true },
+    { name: "Nifty Midcap 50", symbol: "^NSEMDCP50", price: "₹13,464.15", change: "+33.40", percent: "(0.25%)", positive: true },
+    { name: "Fin Nifty", symbol: "^CNXFIN", price: "₹27,377.90", change: "-209.75", percent: "(0.76%)", positive: false },
+    
+    // NIFTY 50 Stocks
     { name: "Adani Enterprises", symbol: "ADANIENT.NS", price: "₹2,678.90", change: "+34.50", percent: "(1.31%)", positive: true },
     { name: "Adani Ports", symbol: "ADANIPORTS.NS", price: "₹1,234.50", change: "+18.20", percent: "(1.50%)", positive: true },
     { name: "Apollo Hospital", symbol: "APOLLOHOSP.NS", price: "₹6,543.20", change: "-45.30", percent: "(0.69%)", positive: false },
@@ -535,6 +605,198 @@ export default function Terminal() {
                       </>
                     )}
                   </div>
+
+                  {/* Indicators Button */}
+                  <div className="relative">
+                    <button 
+                      onClick={() => {
+                        setShowIndicatorsMenu(!showIndicatorsMenu);
+                        setSelectedCategory(null);
+                        setSearchIndicator("");
+                      }}
+                      className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#1F2228] rounded border border-gray-300 dark:border-gray-700"
+                    >
+                      <Activity className="w-3.5 h-3.5" />
+                      <span>Indicators</span>
+                      {activeIndicators.length > 0 && (
+                        <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-[#00D09C] text-white rounded-full">
+                          {activeIndicators.length}
+                        </span>
+                      )}
+                    </button>
+
+                    {/* Primary Indicators Dropdown */}
+                    {showIndicatorsMenu && !selectedCategory && (
+                      <>
+                        <div 
+                          className="fixed inset-0 z-30"
+                          onClick={() => {
+                            setShowIndicatorsMenu(false);
+                            setSearchIndicator("");
+                          }}
+                        ></div>
+                        <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-[#131722] border border-gray-200 dark:border-gray-800 rounded shadow-2xl z-40">
+                          {/* Header */}
+                          <div className="p-3 border-b border-gray-200 dark:border-gray-800">
+                            <div className="flex items-center justify-between mb-2">
+                              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Indicators</h3>
+                              <button
+                                onClick={() => {
+                                  setShowIndicatorsMenu(false);
+                                  setSearchIndicator("");
+                                }}
+                                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                            <div className="flex items-center bg-gray-100 dark:bg-[#1E222D] rounded px-2 py-1.5">
+                              <Search className="w-3.5 h-3.5 text-gray-400" />
+                              <input
+                                type="text"
+                                value={searchIndicator}
+                                onChange={(e) => setSearchIndicator(e.target.value)}
+                                placeholder="Search"
+                                className="bg-transparent border-none outline-none ml-2 text-xs text-gray-700 dark:text-gray-300 placeholder-gray-400 w-full"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Content */}
+                          <div className="max-h-96 overflow-y-auto">
+                            {searchIndicator ? (
+                              // Search Results
+                              <div className="py-1">
+                                {getFilteredIndicators().length > 0 ? (
+                                  getFilteredIndicators().map((indicator) => (
+                                    <button
+                                      key={indicator.id}
+                                      onClick={() => toggleIndicator(indicator.id)}
+                                      className="w-full flex items-center justify-between px-4 py-2.5 text-xs text-left hover:bg-gray-50 dark:hover:bg-[#1E222D] transition-colors"
+                                    >
+                                      <div className="flex items-center space-x-2">
+                                        <div 
+                                          className="w-2.5 h-2.5 rounded-sm"
+                                          style={{ backgroundColor: indicator.color }}
+                                        />
+                                        <span className="text-gray-700 dark:text-gray-300">{indicator.name}</span>
+                                      </div>
+                                      {activeIndicators.includes(indicator.id) && (
+                                        <div className="w-3.5 h-3.5 rounded-full bg-[#00D09C] flex items-center justify-center">
+                                          <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                          </svg>
+                                        </div>
+                                      )}
+                                    </button>
+                                  ))
+                                ) : (
+                                  <div className="px-4 py-6 text-center text-xs text-gray-500 dark:text-gray-400">
+                                    No indicators found
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              // Category List
+                              <>
+                                <div className="py-1">
+                                  <div className="px-4 py-2 text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    SCRIPT NAME
+                                  </div>
+                                  {indicatorCategories.filter(cat => cat !== "All").map((category) => {
+                                    const categoryIndicators = getIndicatorsByCategory(category);
+                                    const activeCount = categoryIndicators.filter(ind => activeIndicators.includes(ind.id)).length;
+                                    
+                                    return (
+                                      <button
+                                        key={category}
+                                        onClick={() => setSelectedCategory(category)}
+                                        className="w-full flex items-center justify-between px-4 py-2.5 text-xs text-left hover:bg-gray-50 dark:hover:bg-[#1E222D] transition-colors group"
+                                      >
+                                        <span className="text-gray-700 dark:text-gray-300">{category}</span>
+                                        <div className="flex items-center space-x-2">
+                                          {activeCount > 0 && (
+                                            <span className="px-1.5 py-0.5 text-[10px] bg-[#00D09C] text-white rounded">
+                                              {activeCount}
+                                            </span>
+                                          )}
+                                          <ChevronRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300" />
+                                        </div>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </>
+                            )}
+                          </div>
+
+                          {/* Footer */}
+                          {activeIndicators.length > 0 && (
+                            <div className="p-3 border-t border-gray-200 dark:border-gray-800">
+                              <button
+                                onClick={() => setActiveIndicators([])}
+                                className="w-full text-xs text-center text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300"
+                              >
+                                Clear all ({activeIndicators.length})
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
+
+                    {/* Secondary Category Dropdown */}
+                    {showIndicatorsMenu && selectedCategory && (
+                      <>
+                        <div 
+                          className="fixed inset-0 z-30"
+                          onClick={() => {
+                            setSelectedCategory(null);
+                          }}
+                        ></div>
+                        <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-[#131722] border border-gray-200 dark:border-gray-800 rounded shadow-2xl z-40">
+                          {/* Header */}
+                          <div className="p-3 border-b border-gray-200 dark:border-gray-800">
+                            <div className="flex items-center space-x-2">
+                              <button
+                                onClick={() => setSelectedCategory(null)}
+                                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                              >
+                                <ChevronLeft className="w-4 h-4" />
+                              </button>
+                              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{selectedCategory}</h3>
+                            </div>
+                          </div>
+
+                          {/* Indicators List */}
+                          <div className="max-h-96 overflow-y-auto py-1">
+                            {getIndicatorsByCategory(selectedCategory).map((indicator) => (
+                              <button
+                                key={indicator.id}
+                                onClick={() => toggleIndicator(indicator.id)}
+                                className="w-full flex items-center justify-between px-4 py-2.5 text-xs text-left hover:bg-gray-50 dark:hover:bg-[#1E222D] transition-colors"
+                              >
+                                <div className="flex items-center space-x-2">
+                                  <div 
+                                    className="w-2.5 h-2.5 rounded-sm"
+                                    style={{ backgroundColor: indicator.color }}
+                                  />
+                                  <span className="text-gray-700 dark:text-gray-300">{indicator.name}</span>
+                                </div>
+                                {activeIndicators.includes(indicator.id) && (
+                                  <div className="w-3.5 h-3.5 rounded-full bg-[#00D09C] flex items-center justify-center">
+                                    <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  </div>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -596,7 +858,7 @@ export default function Terminal() {
           </div>
 
           {/* Chart Canvas Area */}
-          <div className="flex-1 bg-white dark:bg-[#0C0E12] relative transition-colors">
+          <div className="flex-1 bg-white dark:bg-[#0C0E12] relative transition-colors overflow-hidden">
             {/* OHLC Display - Top Left Corner */}
             {ohlcData && (
               <div className="absolute top-4 left-4 z-20 bg-gray-100/90 dark:bg-[#1A1D24]/90 backdrop-blur-sm px-3 py-2 rounded-md shadow-lg">
@@ -639,7 +901,36 @@ export default function Terminal() {
               interval={selectedInterval} 
               chartType={selectedChartType}
               onCrosshairMove={handleCrosshairMove}
+              activeIndicators={activeIndicators}
             />
+
+            {/* Active Overlay Indicators Legend */}
+            {activeIndicators.filter(id => {
+              // Only show overlay indicators (not those in separate panes)
+              const separatePaneIndicators = ['rsi', 'macd', 'stochastic', 'cci', 'momentum', 'williams', 'roc', 'volume', 'obv', 'cmf', 'adl', 'atr'];
+              return !separatePaneIndicators.includes(id);
+            }).length > 0 && (
+              <div className="absolute top-20 left-4 bg-white/90 dark:bg-[#1A1D24]/90 backdrop-blur-sm border border-gray-200 dark:border-gray-800 rounded px-3 py-2 z-10 shadow-lg">
+                <div className="flex flex-col gap-1.5">
+                  {activeIndicators.filter(id => {
+                    const separatePaneIndicators = ['rsi', 'macd', 'stochastic', 'cci', 'momentum', 'williams', 'roc', 'volume', 'obv', 'cmf', 'adl', 'atr'];
+                    return !separatePaneIndicators.includes(id);
+                  }).map((id) => {
+                    const indicator = technicalIndicators.find(ind => ind.id === id);
+                    if (!indicator) return null;
+                    return (
+                      <div key={id} className="flex items-center space-x-2">
+                        <div 
+                          className="w-2.5 h-2.5 rounded-full"
+                          style={{ backgroundColor: indicator.color }}
+                        />
+                        <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{indicator.name}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Bottom Timeframe Bar */}
