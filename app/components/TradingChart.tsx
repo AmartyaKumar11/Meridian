@@ -25,7 +25,14 @@ export default function TradingChart({ symbol, interval, chartType, onCrosshairM
   const allDataRef = useRef<any[]>([]);
   const oldestTimestampRef = useRef<number>(0);
   const isLoadingMoreRef = useRef<boolean>(false);
+  const activeIndicatorsRef = useRef<string[]>(activeIndicators); // Store current active indicators
   const { theme } = useTheme();
+
+  // Update ref whenever activeIndicators prop changes
+  useEffect(() => {
+    activeIndicatorsRef.current = activeIndicators;
+    console.log('🔄 Active indicators updated:', activeIndicators);
+  }, [activeIndicators]);
 
   // Define which indicators need separate panes
   const separatePaneIndicators = [
@@ -355,13 +362,21 @@ export default function TradingChart({ symbol, interval, chartType, onCrosshairM
 
   // Update all active indicators with new data
   const updateIndicators = () => {
-    if (!chartRef.current || allDataRef.current.length === 0 || activeIndicators.length === 0) {
+    const currentActiveIndicators = activeIndicatorsRef.current;
+    
+    if (!chartRef.current || allDataRef.current.length === 0 || currentActiveIndicators.length === 0) {
+      console.log('⚠️ Skipping indicator update:', {
+        hasChart: !!chartRef.current,
+        dataLength: allDataRef.current.length,
+        activeIndicatorsCount: currentActiveIndicators.length,
+        activeIndicators: currentActiveIndicators
+      });
       return;
     }
 
-    console.log('Updating indicators with new data...');
+    console.log('🔄 Updating', currentActiveIndicators.length, 'indicators with', allDataRef.current.length, 'data points...');
 
-    activeIndicators.forEach((indicatorId) => {
+    currentActiveIndicators.forEach((indicatorId) => {
       try {
         const indicatorData = calculateIndicatorData(allDataRef.current, indicatorId);
         
@@ -372,17 +387,17 @@ export default function TradingChart({ symbol, interval, chartType, onCrosshairM
             newMap.set(indicatorId, indicatorData);
             return newMap;
           });
-          console.log(`Updated separate pane indicator ${indicatorId} with ${indicatorData.length} points`);
+          console.log(`✅ Updated separate pane indicator ${indicatorId} with ${indicatorData.length} points`);
         } else {
           // Update overlay series
           const series = indicatorSeriesRef.current.get(indicatorId);
           if (series && series !== 'separate-pane' && indicatorData.length > 0) {
             series.setData(indicatorData);
-            console.log(`Updated overlay indicator ${indicatorId} with ${indicatorData.length} points`);
+            console.log(`✅ Updated overlay indicator ${indicatorId} with ${indicatorData.length} points`);
           }
         }
       } catch (e) {
-        console.error(`Error updating indicator ${indicatorId}:`, e);
+        console.error(`❌ Error updating indicator ${indicatorId}:`, e);
       }
     });
   };
@@ -588,10 +603,11 @@ export default function TradingChart({ symbol, interval, chartType, onCrosshairM
         if (candlestickSeriesRef.current && chartRef.current) {
           try {
             const formattedData = formatDataForChartType(allDataRef.current, chartType);
-            console.log('Setting', formattedData.length, 'data points to chart');
+            console.log('📊 Setting', formattedData.length, 'data points to chart (appendData:', appendData, ')');
             candlestickSeriesRef.current.setData(formattedData);
             
             // Update indicators with new data
+            console.log('🔄 Updating indicators after data load (total data points:', allDataRef.current.length, ')');
             updateIndicators();
           } catch (e) {
             console.error('Error setting chart data:', e);
@@ -676,9 +692,10 @@ export default function TradingChart({ symbol, interval, chartType, onCrosshairM
       try {
         const formattedData = formatDataForChartType(allDataRef.current, chartType);
         candlestickSeriesRef.current.setData(formattedData);
-        console.log('✅ Set chart data:', allDataRef.current.length, 'candles');
+        console.log('✅ Set chart data:', allDataRef.current.length, 'candles (sample data)');
         
         // Update indicators with new data
+        console.log('🔄 Updating indicators after sample data load (total data points:', allDataRef.current.length, ')');
         updateIndicators();
       } catch (e) {
         console.error('Error setting sample data:', e);
@@ -688,7 +705,13 @@ export default function TradingChart({ symbol, interval, chartType, onCrosshairM
 
   // Load more historical data when scrolling back
   const loadMoreHistoricalData = async () => {
-    if (!oldestTimestampRef.current || isLoadingMoreRef.current) return;
+    if (!oldestTimestampRef.current || isLoadingMoreRef.current) {
+      console.log('⏸️ Skipping load more:', {
+        hasOldestTimestamp: !!oldestTimestampRef.current,
+        isAlreadyLoading: isLoadingMoreRef.current
+      });
+      return;
+    }
     
     // Check if chart is still mounted
     if (!chartRef.current || !chartContainerRef.current) {
@@ -698,6 +721,8 @@ export default function TradingChart({ symbol, interval, chartType, onCrosshairM
     
     isLoadingMoreRef.current = true;
     setIsLoadingMore(true);
+    
+    console.log('📜 Loading more historical data from timestamp:', new Date(oldestTimestampRef.current * 1000).toISOString());
     
     // Calculate how far back to fetch based on interval
     const { resolution } = getTimeRange(interval);
@@ -730,10 +755,12 @@ export default function TradingChart({ symbol, interval, chartType, onCrosshairM
     }
     
     const newFrom = oldestTimestampRef.current - additionalTime;
+    console.log('📥 Fetching data from:', new Date(newFrom * 1000).toISOString(), 'to', new Date(oldestTimestampRef.current * 1000).toISOString());
     await fetchChartData(newFrom, true);
     
     isLoadingMoreRef.current = false;
     setIsLoadingMore(false);
+    console.log('✅ Completed loading more historical data');
   };
 
   // Initialize chart
@@ -914,6 +941,7 @@ export default function TradingChart({ symbol, interval, chartType, onCrosshairM
       if (logicalRange !== null) {
         // If user scrolled to the left edge (viewing oldest data), load more historical data
         if (logicalRange.from < 5) {
+          console.log('👈 User scrolled to left edge (from:', logicalRange.from, ') - triggering data load...');
           loadMoreHistoricalData();
         }
       }

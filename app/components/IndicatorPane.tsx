@@ -254,10 +254,18 @@ export default function IndicatorPane({ indicatorId, indicatorName, data, color,
 
   // Update data
   useEffect(() => {
+    console.log(`📊 IndicatorPane ${indicatorId} - data changed, updating series with ${data.length} points`);
     if (seriesRef.current && data.length > 0) {
       seriesRef.current.setData(data);
+      console.log(`✅ IndicatorPane ${indicatorId} - series updated successfully`);
+      // Auto-fit the content after data update
+      if (chartRef.current) {
+        chartRef.current.timeScale().fitContent();
+      }
+    } else {
+      console.warn(`⚠️ IndicatorPane ${indicatorId} - cannot update: seriesRef=${!!seriesRef.current}, dataLength=${data.length}`);
     }
-  }, [data]);
+  }, [data, indicatorId]);
 
   return (
     <div className="w-full h-full flex flex-col border-t border-gray-200 dark:border-gray-800">
