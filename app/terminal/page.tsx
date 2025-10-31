@@ -434,7 +434,7 @@ export default function Terminal() {
       {/* Terminal Main Content */}
       <div className={`flex flex-1 overflow-hidden transition-all duration-300 ${isIndicesOpen ? 'blur-[2px] brightness-50' : ''}`}>
         {/* Left Sidebar - Drawing Tools */}
-        <div className="w-12 bg-[#131722] dark:bg-[#131722] border-r border-gray-800 flex flex-col items-center py-3 space-y-0 overflow-y-auto scrollbar-hide relative">
+        <div className="w-12 bg-white dark:bg-[#131722] border-r border-gray-200 dark:border-gray-800 flex flex-col items-center py-3 space-y-0 overflow-y-auto scrollbar-hide relative transition-colors">
           {leftSidebarTools.map((tool, index) => (
             <div key={tool.id}>
               <button
@@ -464,7 +464,7 @@ export default function Terminal() {
                 className={`w-full p-2.5 transition-colors relative ${
                   activeLeftTool === tool.id || (showToolsMenu && expandedCategory === tool.category)
                     ? "bg-[#2962FF] text-white"
-                    : "text-gray-400 hover:bg-gray-800"
+                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                 }`}
                 title={tool.label}
               >
@@ -475,7 +475,7 @@ export default function Terminal() {
               </button>
               {/* Divider after certain tools */}
               {(index === 0 || index === 6 || index === 8 || index === 10 || index === 13) && (
-                <div className="w-6 h-px bg-gray-800 mx-auto my-1"></div>
+                <div className="w-6 h-px bg-gray-300 dark:bg-gray-800 mx-auto my-1"></div>
               )}
             </div>
           ))}
@@ -492,7 +492,7 @@ export default function Terminal() {
               }}
             ></div>
             <div 
-              className="fixed left-12 w-64 max-h-[90vh] bg-[#1E222D] border border-gray-800 shadow-xl z-40 overflow-y-auto scrollbar-hide"
+              className="fixed left-12 w-64 max-h-[90vh] bg-white dark:bg-[#1E222D] border border-gray-200 dark:border-gray-800 shadow-xl z-40 overflow-y-auto scrollbar-hide"
               style={{ top: `${menuPosition.top}px` }}
             >
               <div className="p-2">
@@ -500,10 +500,10 @@ export default function Terminal() {
                   .filter(cat => cat.id === expandedCategory)
                   .map((category) => (
                     <div key={category.id}>
-                      <div className="px-2 py-2 border-b border-gray-800">
+                      <div className="px-2 py-2 border-b border-gray-200 dark:border-gray-800">
                         <div className="flex items-center space-x-2">
-                          <category.icon className="w-4 h-4 text-gray-400" />
-                          <span className="text-xs font-medium text-white">{category.label}</span>
+                          <category.icon className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                          <span className="text-xs font-medium text-gray-900 dark:text-white">{category.label}</span>
                         </div>
                       </div>
                       <div className="mt-1 space-y-0">
@@ -518,12 +518,12 @@ export default function Terminal() {
                             className={`w-full flex items-center justify-between px-3 py-2 text-left transition-colors ${
                               activeLeftTool === tool.id
                                 ? "bg-[#2962FF] text-white"
-                                : "hover:bg-gray-800 text-gray-300"
+                                : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                             }`}
                           >
                             <span className="text-xs">{tool.label}</span>
                             {tool.shortcut && (
-                              <span className="text-[10px] text-gray-500">{tool.shortcut}</span>
+                              <span className="text-[10px] text-gray-500 dark:text-gray-400">{tool.shortcut}</span>
                             )}
                           </button>
                         ))}
