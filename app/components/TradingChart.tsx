@@ -89,17 +89,20 @@ export default function TradingChart({ symbol, interval, chartType, onCrosshairM
     const gains = [];
     const losses = [];
     
+    // Calculate price changes
     for (let i = 1; i < data.length; i++) {
       const change = data[i].close - data[i - 1].close;
       gains.push(change > 0 ? change : 0);
       losses.push(change < 0 ? Math.abs(change) : 0);
     }
     
-    for (let i = period; i < gains.length; i++) {
-      const avgGain = gains.slice(i - period, i).reduce((a, b) => a + b, 0) / period;
-      const avgLoss = losses.slice(i - period, i).reduce((a, b) => a + b, 0) / period;
+    // Calculate RSI for each valid period
+    for (let i = period - 1; i < gains.length; i++) {
+      const avgGain = gains.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0) / period;
+      const avgLoss = losses.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0) / period;
       const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
       const rsi = 100 - (100 / (1 + rs));
+      // Use the correct data point (i+1 because gains/losses array is offset by 1)
       result.push({ time: data[i + 1].time, value: rsi });
     }
     return result;

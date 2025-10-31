@@ -46,9 +46,18 @@ export default function IndicatorPane({ indicatorId, indicatorName, data, color,
         borderColor: isDark ? '#2B2B43' : '#E0E0E0',
         timeVisible: true,
         secondsVisible: false,
+        rightOffset: 5,
+        barSpacing: 6,
+        fixLeftEdge: false,
+        fixRightEdge: false,
       },
       rightPriceScale: {
         borderColor: isDark ? '#2B2B43' : '#E0E0E0',
+        autoScale: true,
+        scaleMargins: {
+          top: 0.1,
+          bottom: 0.1,
+        },
       },
     });
 
@@ -72,6 +81,12 @@ export default function IndicatorPane({ indicatorId, indicatorName, data, color,
     }
 
     seriesRef.current.setData(data);
+    
+    console.log(`Indicator ${indicatorId} loaded with ${data.length} data points`);
+    if (data.length > 0) {
+      console.log(`First point:`, data[0]);
+      console.log(`Last point:`, data[data.length - 1]);
+    }
 
     // Add reference lines for certain indicators
     if (indicatorId === 'rsi') {
@@ -143,6 +158,10 @@ export default function IndicatorPane({ indicatorId, indicatorName, data, color,
           const mainRange = mainTimeScale.getVisibleRange();
           if (mainRange) {
             indicatorTimeScale.setVisibleRange(mainRange);
+            // Auto-fit the price scale to visible content
+            if (seriesRef.current) {
+              chart.timeScale().fitContent();
+            }
           }
         } catch (e) {
           // Ignore errors during sync
