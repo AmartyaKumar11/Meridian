@@ -1,3 +1,6 @@
+// Custom slider styles for modern, theme-matching look
+// Add this at the top-level of the component render (just inside the main return)
+
 "use client";
 
 import { 
@@ -10,16 +13,18 @@ import {
   ChevronRight, ChevronLeft, Pencil, FileBarChart, CreditCard,
   Target, Slash, Heart, Brush, Zap, Move
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "../context/ThemeContext";
 import PageTransition from "../components/PageTransition";
 import TradingChart from "../components/TradingChart";
 
 export default function Terminal() {
+  const [chartKey, setChartKey] = useState(0);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isWatchlistOpen, setIsWatchlistOpen] = useState(true);
   const [isIndicesOpen, setIsIndicesOpen] = useState(false);
+  const [isPortfolioSidebarOpen, setIsPortfolioSidebarOpen] = useState(false);
   const [selectedInterval, setSelectedInterval] = useState("1d");
   const [selectedStock, setSelectedStock] = useState("RELIANCE.NS");
   const [selectedChartType, setSelectedChartType] = useState("candlestick");
@@ -41,8 +46,31 @@ export default function Terminal() {
     changePercent: number;
     isBullish: boolean;
   } | null>(null);
+  
+  // Portfolio Generator states
+  const [portfolioStartDate, setPortfolioStartDate] = useState("");
+  const [portfolioEndDate, setPortfolioEndDate] = useState("");
+  const [dateSelectionMode, setDateSelectionMode] = useState<"manual" | "chart">("manual");
+  const [chartSelectedStart, setChartSelectedStart] = useState<number | null>(null);
+  const [chartSelectedEnd, setChartSelectedEnd] = useState<number | null>(null);
+  const [targetReturn, setTargetReturn] = useState(15);
+  const [riskAppetite, setRiskAppetite] = useState("moderate");
+  const [horizonYears, setHorizonYears] = useState(5);
+  const [initialCapital, setInitialCapital] = useState(100000);
+  const [inflation, setInflation] = useState(6);
+  const [sectorsInclude, setSectorsInclude] = useState<string[]>([]);
+  const [sectorsExclude, setSectorsExclude] = useState<string[]>([]);
+  
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
+
+  useEffect(() => {
+    const refreshInterval = setInterval(() => {
+      setChartKey(prev => prev + 1);
+    }, 30000);
+
+    return () => clearInterval(refreshInterval);
+  }, []);
 
   const toggleIndicator = (indicatorId: string) => {
     setActiveIndicators(prev => 
@@ -95,6 +123,31 @@ export default function Terminal() {
   const handleLogout = () => {
     router.push('/');
   };
+
+  // Handle chart click for date selection in Portfolio Generator
+  const handleChartClick = (timestamp: number) => {
+    if (dateSelectionMode === "chart" && isPortfolioSidebarOpen) {
+      if (!chartSelectedStart) {
+        setChartSelectedStart(timestamp);
+      } else if (!chartSelectedEnd) {
+        setChartSelectedEnd(timestamp);
+      }
+    }
+  };
+
+  // Handle right-click to clear chart date selection
+  const handleChartRightClick = () => {
+    if (dateSelectionMode === "chart" && isPortfolioSidebarOpen) {
+      setChartSelectedStart(null);
+      setChartSelectedEnd(null);
+    }
+  };
+
+  // Sector options for portfolio generator
+  const sectorOptions = [
+    "Banking", "IT", "Pharmaceuticals", "Automobiles", "Energy",
+    "FMCG", "Metals", "Real Estate", "Telecom", "Infrastructure"
+  ];
 
   const drawingToolsCategories = [
     {
@@ -251,6 +304,7 @@ export default function Terminal() {
   const chartTypes = ["5m", "15m", "1h", "1d"];
 
   const technicalIndicators = [
+    { id: "ma-5", name: "Moving Average (5)", category: "Trend", color: "#00D09C" },
     { id: "ma-20", name: "Moving Average (20)", category: "Trend", color: "#2196F3" },
     { id: "ma-50", name: "Moving Average (50)", category: "Trend", color: "#FF9800" },
     { id: "ma-200", name: "Moving Average (200)", category: "Trend", color: "#F44336" },
@@ -372,8 +426,82 @@ export default function Terminal() {
   ];
 
   return (
-    <PageTransition>
-    <div className="h-screen flex flex-col bg-[#F8F9FA] dark:bg-[#0C0E12] transition-colors duration-300 overflow-hidden">
+    <div>
+      <style jsx global>{`
+        input[type='range'].custom-slider {
+          -webkit-appearance: none;
+          width: 100%;
+          height: 6px;
+          background: #e5e7eb;
+          border-radius: 4px;
+          outline: none;
+          transition: background 0.2s;
+        }
+        .dark input[type='range'].custom-slider {
+          background: #23272F;
+        }
+        input[type='range'].custom-slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: #00D09C;
+          border: 2px solid #fff;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+        .dark input[type='range'].custom-slider::-webkit-slider-thumb {
+          background: #00D09C;
+          border: 2px solid #23272F;
+        }
+        input[type='range'].custom-slider::-moz-range-thumb {
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: #00D09C;
+          border: 2px solid #fff;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+          cursor: pointer;
+        }
+        .dark input[type='range'].custom-slider::-moz-range-thumb {
+          background: #00D09C;
+          border: 2px solid #23272F;
+        }
+        input[type='range'].custom-slider::-ms-thumb {
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: #00D09C;
+          border: 2px solid #fff;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+          cursor: pointer;
+        }
+        .dark input[type='range'].custom-slider::-ms-thumb {
+          background: #00D09C;
+          border: 2px solid #23272F;
+        }
+        input[type='range'].custom-slider:focus {
+          outline: none;
+        }
+        input[type='range'].custom-slider::-webkit-slider-runnable-track {
+          height: 6px;
+          border-radius: 4px;
+        }
+        input[type='range'].custom-slider::-ms-fill-lower {
+          background: #00D09C;
+        }
+        input[type='range'].custom-slider::-ms-fill-upper {
+          background: #e5e7eb;
+        }
+        .dark input[type='range'].custom-slider::-ms-fill-upper {
+          background: #23272F;
+        }
+      `}</style>
+      
+      <PageTransition>
+        <div className="h-screen flex flex-col bg-[#F8F9FA] dark:bg-[#0C0E12] transition-colors duration-300 overflow-hidden">
       {/* Top Navigation */}
       <nav className="bg-white/80 dark:bg-[#1A1D24]/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 z-50 transition-colors duration-300">
         <div className="max-w-full mx-auto px-6 py-2">
@@ -432,7 +560,7 @@ export default function Terminal() {
       </nav>
 
       {/* Terminal Main Content */}
-      <div className={`flex flex-1 overflow-hidden transition-all duration-300 ${isIndicesOpen ? 'blur-[2px] brightness-50' : ''}`}>
+      <div className="flex flex-1 overflow-hidden">
         {/* Left Sidebar - Drawing Tools */}
         <div className="w-12 bg-white dark:bg-[#131722] border-r border-gray-200 dark:border-gray-800 flex flex-col items-center py-3 space-y-0 overflow-y-auto scrollbar-hide relative transition-colors">
           {leftSidebarTools.map((tool, index) => (
@@ -536,7 +664,7 @@ export default function Terminal() {
         )}
 
         {/* Main Chart Area */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col transition-all duration-300">
           {/* Chart Top Bar */}
           <div className="bg-white dark:bg-[#1A1D24] border-b border-gray-200 dark:border-gray-800 px-4 py-1.5 flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -811,13 +939,6 @@ export default function Terminal() {
                   </button>
                 ))}
               </div>
-
-              {/* Indicators Button */}
-              <button className="flex items-center space-x-1 px-3 py-1.5 text-xs text-[#44475B] dark:text-gray-300 border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-[#1F2228]">
-                <Activity className="w-3.5 h-3.5" />
-                <span>Indicators</span>
-              </button>
-
               {/* Undo/Redo */}
               <div className="flex items-center space-x-1">
                 <button className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#1F2228]">
@@ -858,7 +979,7 @@ export default function Terminal() {
           </div>
 
           {/* Chart Canvas Area */}
-          <div className="flex-1 bg-white dark:bg-[#0C0E12] relative transition-colors overflow-hidden">
+          <div className="flex-1 bg-white dark:bg-[#0C0E12] relative transition-colors overflow-hidden cursor-crosshair">
             {/* OHLC Display - Top Left Corner */}
             {ohlcData && (
               <div className="absolute top-4 left-4 z-20 bg-gray-100/90 dark:bg-[#1A1D24]/90 backdrop-blur-sm px-3 py-2 rounded-md shadow-lg">
@@ -896,12 +1017,19 @@ export default function Terminal() {
               </div>
             )}
             
+
             <TradingChart 
+              key={chartKey}
               symbol={selectedStock} 
               interval={selectedInterval} 
               chartType={selectedChartType}
               onCrosshairMove={handleCrosshairMove}
               activeIndicators={activeIndicators}
+              onChartClick={handleChartClick}
+              onChartRightClick={handleChartRightClick}
+              chartDateSelectionMode={dateSelectionMode === "chart" && isPortfolioSidebarOpen}
+              selectedStartDate={chartSelectedStart}
+              selectedEndDate={chartSelectedEnd}
             />
 
             {/* Active Overlay Indicators Legend */}
@@ -940,147 +1068,357 @@ export default function Terminal() {
                 <button
                   key={interval}
                   onClick={() => setSelectedInterval(interval)}
-                  className={`px-2.5 py-0.5 text-xs rounded transition-colors ${
-                    selectedInterval === interval
-                      ? "bg-[#00D09C] text-white"
-                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#1F2228]"
-                  }`}
-                >
-                  {interval}
-                </button>
+                  className={`px-3 py-1 rounded transition-colors text-sm font-medium ${selectedInterval === interval ? 'bg-[#00D09C] text-white' : 'bg-gray-100 dark:bg-[#23272F] text-gray-700 dark:text-gray-300'}`}
+                >{interval}</button>
               ))}
-            </div>
-            <div className="flex items-center space-x-4 text-xs text-gray-600 dark:text-gray-400">
-              <span>14:51:50 (UTC+5:30)</span>
-              <button className="hover:text-[#00D09C]">%</button>
-              <button className="hover:text-[#00D09C]">log</button>
-              <button className="text-[#00D09C]">auto</button>
             </div>
           </div>
         </div>
 
         {/* Right Sidebar - Watchlist */}
         {isWatchlistOpen && (
-          <div className="w-80 bg-white dark:bg-[#1A1D24] border-l border-gray-200 dark:border-gray-800 flex flex-col relative">
+          <div className="w-80 bg-white dark:bg-[#1A1D24] border-l border-gray-200 dark:border-gray-800 flex flex-col transition-all duration-300 overflow-hidden">
             {/* Watchlist Header */}
-            <div className="p-3 border-b border-gray-200 dark:border-gray-800">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-xs font-semibold text-[#44475B] dark:text-white">My Watchlist</h3>
-                <button className="text-[#00D09C] hover:text-[#00B386]">
-                  <Pencil className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="flex items-center bg-[#F8F9FA] dark:bg-[#1F2228] rounded-md px-2.5 py-1.5">
-                <Search className="w-3.5 h-3.5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search & add"
-                  className="bg-transparent border-none outline-none ml-2 text-xs text-[#44475B] dark:text-gray-300 placeholder-gray-400 w-full"
-                />
+            <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-semibold text-[#44475B] dark:text-white">Watchlist</h2>
+                <div className="flex items-center space-x-2">
+                  <button className="p-1 hover:bg-gray-100 dark:hover:bg-[#1F2228] rounded">
+                    <Plus className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                  </button>
+                  <button className="p-1 hover:bg-gray-100 dark:hover:bg-[#1F2228] rounded">
+                    <Search className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Watchlist Items */}
+            {/* Watchlist Stocks */}
             <div className="flex-1 overflow-y-auto scrollbar-hide">
-              <div className="p-2.5">
-                <div className="flex items-center justify-between mb-2 text-[10px] text-gray-500 dark:text-gray-400">
-                  <span>Company</span>
-                  <span>Market price</span>
-                </div>
-                {watchlistStocks.map((stock, idx) => (
-                  <div 
-                    key={idx}
-                    onClick={() => setSelectedStock(stock.symbol)}
-                    className={`flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-[#1F2228] cursor-pointer px-2 -mx-2 rounded ${
-                      selectedStock === stock.symbol ? 'bg-[#00D09C]/10 border-l-2 border-l-[#00D09C]' : ''
-                    }`}
-                  >
-                    <div>
+              {watchlistStocks.map((stock, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => setSelectedStock(stock.symbol)}
+                  className={`px-4 py-3 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-[#1F2228] cursor-pointer transition-colors ${
+                    selectedStock === stock.symbol ? 'bg-[#00D09C]/5' : ''
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
                       <div className="text-xs font-medium text-[#44475B] dark:text-white">{stock.name}</div>
+                      <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{stock.symbol}</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-xs font-medium text-[#44475B] dark:text-white">{stock.price}</div>
+                      <div className="text-xs font-semibold text-[#44475B] dark:text-white">{stock.price}</div>
                       <div className={`text-[10px] ${stock.positive ? 'text-[#00D09C]' : 'text-red-500'}`}>
                         {stock.change} {stock.percent}
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Watchlist Bottom Tabs */}
-            <div className="border-t border-gray-200 dark:border-gray-800 p-2 space-y-1">
-              <button className="w-full flex items-center justify-between px-2.5 py-1.5 text-xs text-[#44475B] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1F2228] rounded">
-                <span>Positions</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-              <button className="w-full flex items-center justify-between px-2.5 py-1.5 text-xs text-[#44475B] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1F2228] rounded">
-                <span>Orders</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
+                </div>
+              ))}
             </div>
           </div>
         )}
 
-        {/* Far Right Vertical Sidebar - Additional Tools */}
-        <div className="w-20 bg-white dark:bg-[#1A1D24] border-l border-gray-200 dark:border-gray-800 flex flex-col items-center py-3 space-y-3 overflow-y-auto scrollbar-hide">
+        {/* Rightmost Icon Sidebar */}
+        <div className="w-12 bg-white dark:bg-[#131722] border-l border-gray-200 dark:border-gray-800 flex flex-col items-center py-4 space-y-2 transition-colors">
           <button 
             onClick={() => setIsWatchlistOpen(!isWatchlistOpen)}
-            className={`flex flex-col items-center space-y-0.5 p-1.5 rounded-md transition-colors ${
+            className={`p-2.5 rounded transition-colors ${
               isWatchlistOpen 
-                ? "text-[#00D09C]" 
-                : "text-gray-600 dark:text-gray-400 hover:text-[#00D09C]"
+                ? "bg-[#00D09C] text-white" 
+                : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
             }`}
+            title="Watchlist"
           >
             <List className="w-4 h-4" />
-            <span className="text-[8px]">Watchlist</span>
           </button>
-
-          <button className="flex flex-col items-center space-y-0.5 p-1.5 rounded-md text-gray-600 dark:text-gray-400 hover:text-[#00D09C] transition-colors">
-            <Circle className="w-4 h-4" />
-            <span className="text-[8px]">Positions</span>
-          </button>
-
-          <button className="flex flex-col items-center space-y-0.5 p-1.5 rounded-md text-gray-600 dark:text-gray-400 hover:text-[#00D09C] transition-colors">
+          
+          <div className="w-6 h-px bg-gray-300 dark:bg-gray-800 my-1"></div>
+          
+          <button 
+            onClick={() => setIsPortfolioSidebarOpen(!isPortfolioSidebarOpen)}
+            className={`p-2.5 rounded transition-colors ${
+              isPortfolioSidebarOpen 
+                ? "bg-[#00D09C] text-white" 
+                : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+            }`}
+            title="Portfolio Generator"
+          >
             <FileBarChart className="w-4 h-4" />
-            <span className="text-[8px]">Orders</span>
           </button>
-
-          <button className="flex flex-col items-center space-y-0.5 p-1.5 rounded-md text-gray-600 dark:text-gray-400 hover:text-[#00D09C] transition-colors">
-            <Activity className="w-4 h-4" />
-            <span className="text-[8px]">Chain</span>
-          </button>
-
-          <button className="flex flex-col items-center space-y-0.5 p-1.5 rounded-md text-gray-600 dark:text-gray-400 hover:text-[#00D09C] transition-colors">
-            <BarChart3 className="w-4 h-4" />
-            <span className="text-[8px]">Depth</span>
-          </button>
-
-          <button className="flex flex-col items-center space-y-0.5 p-1.5 rounded-md text-gray-600 dark:text-gray-400 hover:text-[#00D09C] transition-colors">
-            <Grid className="w-4 h-4" />
-            <span className="text-[8px]">Holdings</span>
-          </button>
-
-          <button className="flex flex-col items-center space-y-0.5 p-1.5 rounded-md text-gray-600 dark:text-gray-400 hover:text-[#00D09C] transition-colors">
+          
+          <button 
+            className="p-2.5 rounded text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            title="Orders"
+          >
             <CreditCard className="w-4 h-4" />
-            <span className="text-[8px]">Balance</span>
           </button>
-
-          <div className="flex-1"></div>
-
-          <button className="flex flex-col items-center space-y-0.5 p-1.5 rounded-md text-gray-600 dark:text-gray-400 hover:text-[#00D09C] transition-colors">
-            <Maximize2 className="w-4 h-4" />
-            <span className="text-[8px]">Layout</span>
+          
+          <button 
+            className="p-2.5 rounded text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            title="Positions"
+          >
+            <BarChart3 className="w-4 h-4" />
+          </button>
+          
+          <div className="w-6 h-px bg-gray-300 dark:bg-gray-800 my-1"></div>
+          
+          <button 
+            className="p-2.5 rounded text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            title="Alerts"
+          >
+            <Bell className="w-4 h-4" />
+          </button>
+          
+          <button 
+            className="p-2.5 rounded text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            title="Settings"
+          >
+            <Settings className="w-4 h-4" />
           </button>
         </div>
-      </div>
 
-      {/* All Indices Sidebar Modal */}
-      <>
+        {/* Portfolio Generator Modal Window */}
+        {isPortfolioSidebarOpen && (
+          <>
+            {/* Overlay */}
+            <div 
+              className="fixed inset-0 bg-black/40 z-40 transition-opacity duration-300"
+              onClick={() => setIsPortfolioSidebarOpen(false)}
+            ></div>
+            
+            {/* Modal Window */}
+            <div className="fixed inset-x-0 top-20 mx-auto w-[95%] max-w-[1400px] bg-white dark:bg-[#1A1D24] rounded-lg shadow-2xl z-50 max-h-[85vh] overflow-hidden flex flex-col border border-gray-200 dark:border-gray-800">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#131722]">
+                <div className="flex items-center space-x-3">
+                  <FileBarChart className="w-5 h-5 text-[#00D09C]" />
+                  <h2 className="text-lg font-semibold text-[#44475B] dark:text-white">Smart Portfolio Generator</h2>
+                </div>
+                <button 
+                  onClick={() => setIsPortfolioSidebarOpen(false)}
+                  className="p-2 rounded hover:bg-gray-200 dark:hover:bg-[#23272F] transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="flex-1 overflow-y-auto scrollbar-hide p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {/* Date Selection */}
+                  <div className="space-y-3">
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Date Selection</label>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setDateSelectionMode('manual')}
+                        className={`flex-1 px-4 py-2 text-sm rounded transition-colors ${dateSelectionMode === 'manual' ? 'bg-[#00D09C] text-white' : 'bg-gray-100 dark:bg-[#1F2228] text-gray-700 dark:text-gray-300'}`}
+                      >Manual</button>
+                      <button
+                        onClick={() => setDateSelectionMode('chart')}
+                        className={`flex-1 px-4 py-2 text-sm rounded transition-colors ${dateSelectionMode === 'chart' ? 'bg-[#00D09C] text-white' : 'bg-gray-100 dark:bg-[#1F2228] text-gray-700 dark:text-gray-300'}`}
+                      >From Chart</button>
+                    </div>
+                    {dateSelectionMode === 'manual' ? (
+                      <div className="space-y-2">
+                        <input 
+                          type="date" 
+                          value={portfolioStartDate} 
+                          onChange={e => setPortfolioStartDate(e.target.value)} 
+                          className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-[#23272F] border border-gray-300 dark:border-gray-700 rounded text-gray-900 dark:text-gray-100" 
+                        />
+                        <input 
+                          type="date" 
+                          value={portfolioEndDate} 
+                          onChange={e => setPortfolioEndDate(e.target.value)} 
+                          className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-[#23272F] border border-gray-300 dark:border-gray-700 rounded text-gray-900 dark:text-gray-100" 
+                        />
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded p-3">
+                          <p className="text-xs font-medium text-blue-700 dark:text-blue-400 mb-2">Chart Selection Mode:</p>
+                          <ul className="text-xs text-blue-700 dark:text-blue-400 space-y-1 list-disc list-inside">
+                            <li>Left-click chart: Set start date</li>
+                            <li>Left-click again: Set end date</li>
+                            <li>Right-click: Clear selection</li>
+                          </ul>
+                        </div>
+                        {(chartSelectedStart || chartSelectedEnd) && (
+                          <div className="bg-gray-100 dark:bg-[#23272F] rounded p-3 space-y-1">
+                            {chartSelectedStart && (
+                              <div className="text-sm text-gray-700 dark:text-gray-300">
+                                <span className="font-semibold">Start:</span> {new Date(chartSelectedStart * 1000).toLocaleDateString()}
+                              </div>
+                            )}
+                            {chartSelectedEnd && (
+                              <div className="text-sm text-gray-700 dark:text-gray-300">
+                                <span className="font-semibold">End:</span> {new Date(chartSelectedEnd * 1000).toLocaleDateString()}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Risk Appetite */}
+                  <div className="space-y-3">
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Risk Appetite</label>
+                    <select
+                      value={riskAppetite}
+                      onChange={e => setRiskAppetite(e.target.value)}
+                      className="w-full px-4 py-2 text-sm bg-gray-100 dark:bg-[#23272F] border border-gray-300 dark:border-gray-700 rounded text-gray-900 dark:text-gray-100"
+                    >
+                      <option value="low">Low Risk</option>
+                      <option value="moderate">Moderate Risk</option>
+                      <option value="high">High Risk</option>
+                    </select>
+                  </div>
+
+                  {/* Target Return */}
+                  <div className="space-y-3">
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      Target Return: <span className="text-[#00D09C] font-bold">{targetReturn}%</span>
+                    </label>
+                    <input
+                      type="range"
+                      min="5"
+                      max="30"
+                      step="1"
+                      value={targetReturn}
+                      onChange={e => setTargetReturn(Number(e.target.value))}
+                      className="w-full h-3 rounded-lg appearance-none bg-gray-200 dark:bg-[#23272F] accent-[#00D09C] custom-slider"
+                      style={{ accentColor: '#00D09C' }}
+                    />
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>5%</span>
+                      <span>30%</span>
+                    </div>
+                  </div>
+
+                  {/* Investment Horizon */}
+                  <div className="space-y-3">
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      Investment Horizon: <span className="text-[#00D09C] font-bold">{horizonYears} years</span>
+                    </label>
+                    <input
+                      type="range"
+                      min="1"
+                      max="20"
+                      step="1"
+                      value={horizonYears}
+                      onChange={e => setHorizonYears(Number(e.target.value))}
+                      className="w-full h-3 rounded-lg appearance-none bg-gray-200 dark:bg-[#23272F] accent-[#00D09C] custom-slider"
+                      style={{ accentColor: '#00D09C' }}
+                    />
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>1y</span>
+                      <span>20y</span>
+                    </div>
+                  </div>
+
+                  {/* Initial Capital */}
+                  <div className="space-y-3">
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Initial Capital (₹)</label>
+                    <input
+                      type="number"
+                      value={initialCapital}
+                      onChange={e => setInitialCapital(Number(e.target.value))}
+                      className="w-full px-4 py-2 text-sm bg-gray-100 dark:bg-[#23272F] border border-gray-300 dark:border-gray-700 rounded text-gray-900 dark:text-gray-100"
+                      placeholder="100000"
+                    />
+                  </div>
+
+                  {/* Inflation Rate */}
+                  <div className="space-y-3">
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      Inflation Rate: <span className="text-[#00D09C] font-bold">{inflation}%</span>
+                    </label>
+                    <input
+                      type="range"
+                      min="2"
+                      max="12"
+                      step="0.5"
+                      value={inflation}
+                      onChange={e => setInflation(Number(e.target.value))}
+                      className="w-full h-3 rounded-lg appearance-none bg-gray-200 dark:bg-[#23272F] accent-[#00D09C] custom-slider"
+                      style={{ accentColor: '#00D09C' }}
+                    />
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>2%</span>
+                      <span>12%</span>
+                    </div>
+                  </div>
+
+                  {/* Include Sectors */}
+                  <div className="space-y-3 md:col-span-2 lg:col-span-3">
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Include Sectors</label>
+                    <div className="flex flex-wrap gap-2">
+                      {sectorOptions.map(sector => (
+                        <button
+                          key={sector}
+                          onClick={() => setSectorsInclude(prev => prev.includes(sector) ? prev.filter(s => s !== sector) : [...prev, sector])}
+                          className={`px-3 py-1.5 text-xs rounded transition-colors ${sectorsInclude.includes(sector) ? 'bg-[#00D09C] text-white' : 'bg-gray-100 dark:bg-[#23272F] text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#2A2E39]'}`}
+                        >{sector}</button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Exclude Sectors */}
+                  <div className="space-y-3 md:col-span-2 lg:col-span-3">
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Exclude Sectors</label>
+                    <div className="flex flex-wrap gap-2">
+                      {sectorOptions.map(sector => (
+                        <button
+                          key={sector}
+                          onClick={() => setSectorsExclude(prev => prev.includes(sector) ? prev.filter(s => s !== sector) : [...prev, sector])}
+                          className={`px-3 py-1.5 text-xs rounded transition-colors ${sectorsExclude.includes(sector) ? 'bg-red-500 text-white' : 'bg-gray-100 dark:bg-[#23272F] text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#2A2E39]'}`}
+                        >{sector}</button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#131722]">
+                <button
+                  onClick={() => setIsPortfolioSidebarOpen(false)}
+                  className="px-6 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-[#23272F] hover:bg-gray-300 dark:hover:bg-[#2A2E39] rounded transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    console.log('Generating portfolio with params:', {
+                      start: dateSelectionMode === 'manual' ? portfolioStartDate : chartSelectedStart,
+                      end: dateSelectionMode === 'manual' ? portfolioEndDate : chartSelectedEnd,
+                      targetReturn,
+                      riskAppetite,
+                      horizonYears,
+                      initialCapital,
+                      inflation: inflation / 100,
+                      sectorsInclude,
+                      sectorsExclude,
+                    });
+                    setIsPortfolioSidebarOpen(false);
+                  }}
+                  className="px-8 py-2.5 text-sm font-semibold bg-[#00D09C] hover:bg-[#00B386] text-white rounded transition-colors"
+                >
+                  Generate Portfolio
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* All Indices Sidebar Modal */}
         {isIndicesOpen && (
           <div 
-            className="fixed inset-0 bg-black/30 backdrop-blur-[1px] z-40 transition-all duration-300"
+            className="fixed inset-0 bg-black/30 z-40 transition-all duration-300"
             onClick={() => setIsIndicesOpen(false)}
           ></div>
         )}
@@ -1099,7 +1437,7 @@ export default function Terminal() {
             </div>
 
             {/* Indices List */}
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto scrollbar-hide p-4">
               {allIndices.map((index, idx) => (
                 <div 
                   key={idx}
@@ -1129,8 +1467,9 @@ export default function Terminal() {
               </button>
             </div>
           </div>
-      </>
+        </div>
+        </div>
+      </PageTransition>
     </div>
-    </PageTransition>
   );
 }

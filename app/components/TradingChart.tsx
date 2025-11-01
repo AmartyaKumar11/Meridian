@@ -11,9 +11,25 @@ interface TradingChartProps {
   chartType: string;
   onCrosshairMove?: (data: any) => void;
   activeIndicators?: string[];
+  onChartClick?: (timestamp: number) => void;
+  onChartRightClick?: () => void;
+  chartDateSelectionMode?: boolean;
+  selectedStartDate?: number | null;
+  selectedEndDate?: number | null;
 }
 
-export default function TradingChart({ symbol, interval, chartType, onCrosshairMove, activeIndicators = [] }: TradingChartProps) {
+export default function TradingChart({ 
+  symbol, 
+  interval, 
+  chartType, 
+  onCrosshairMove, 
+  activeIndicators = [],
+  onChartClick,
+  onChartRightClick,
+  chartDateSelectionMode = false,
+  selectedStartDate,
+  selectedEndDate
+}: TradingChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<any>(null);
   const candlestickSeriesRef = useRef<any>(null);
@@ -1013,6 +1029,30 @@ export default function TradingChart({ symbol, interval, chartType, onCrosshairM
       }
     });
 
+    // Add click handler for portfolio date selection
+    if (chartContainerRef.current) {
+      const handleClick = (e: MouseEvent) => {
+        if (chartDateSelectionMode && onChartClick && chartRef.current) {
+          const timeScale = chartRef.current.timeScale();
+          const coordinate = e.offsetX;
+          const timestamp = timeScale.coordinateToTime(coordinate);
+          if (timestamp) {
+            onChartClick(timestamp as number);
+          }
+        }
+      };
+
+      const handleRightClick = (e: MouseEvent) => {
+        if (chartDateSelectionMode && onChartRightClick) {
+          e.preventDefault();
+          onChartRightClick();
+        }
+      };
+
+      chartContainerRef.current.addEventListener('click', handleClick);
+      chartContainerRef.current.addEventListener('contextmenu', handleRightClick);
+    }
+
     // Handle resize
     const handleResize = () => {
       if (chartContainerRef.current && chartRef.current) {
@@ -1421,6 +1461,12 @@ export default function TradingChart({ symbol, interval, chartType, onCrosshairM
           <div className="absolute top-4 left-4 bg-gray-100 dark:bg-[#1A1D24] text-gray-700 dark:text-gray-300 text-xs px-3 py-2 rounded-md shadow-lg z-10 flex items-center space-x-2 pointer-events-none">
             <div className="w-3 h-3 border-2 border-[#00D09C] border-t-transparent rounded-full animate-spin"></div>
             <span>Loading historical data...</span>
+          </div>
+        )}
+        {/* Portfolio Date Selection Indicator */}
+        {chartDateSelectionMode && (
+          <div className="absolute top-4 right-4 bg-blue-500 text-white text-xs px-3 py-2 rounded-md shadow-lg z-10 pointer-events-none">
+            📅 Date Selection Mode Active
           </div>
         )}
         <div ref={chartContainerRef} className="w-full h-full" />

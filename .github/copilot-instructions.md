@@ -28,3 +28,6 @@
 
 ## coding instructions 
 1. dont put any emojis in the code whatsoever
+2. There should not be any emojis in the ui code .. only icons from libraries like react-icons or similar can be used
+3. always go through the complete design before starting to code
+4. before ending the code geenration , make sure to double check for any missing parts or incomplete sections
