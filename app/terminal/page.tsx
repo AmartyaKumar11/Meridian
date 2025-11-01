@@ -20,7 +20,7 @@ import PageTransition from "../components/PageTransition";
 import TradingChart from "../components/TradingChart";
 
 export default function Terminal() {
-  const [chartKey, setChartKey] = useState(0);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isWatchlistOpen, setIsWatchlistOpen] = useState(true);
   const [isIndicesOpen, setIsIndicesOpen] = useState(false);
@@ -66,7 +66,7 @@ export default function Terminal() {
 
   useEffect(() => {
     const refreshInterval = setInterval(() => {
-      setChartKey(prev => prev + 1);
+      setRefreshTrigger(prev => prev + 1);
     }, 30000);
 
     return () => clearInterval(refreshInterval);
@@ -1019,7 +1019,6 @@ export default function Terminal() {
             
 
             <TradingChart 
-              key={chartKey}
               symbol={selectedStock} 
               interval={selectedInterval} 
               chartType={selectedChartType}
@@ -1030,6 +1029,7 @@ export default function Terminal() {
               chartDateSelectionMode={dateSelectionMode === "chart" && isPortfolioSidebarOpen}
               selectedStartDate={chartSelectedStart}
               selectedEndDate={chartSelectedEnd}
+              refreshTrigger={refreshTrigger}
             />
 
             {/* Active Overlay Indicators Legend */}
@@ -1180,81 +1180,79 @@ export default function Terminal() {
           </button>
         </div>
 
-        {/* Portfolio Generator Modal Window */}
-        {isPortfolioSidebarOpen && (
-          <>
-            {/* Overlay */}
-            <div 
-              className="fixed inset-0 bg-black/40 z-40 transition-opacity duration-300"
+        {/* Portfolio Generator Bottom Sidebar */}
+        <div className={`fixed bottom-0 left-0 right-0 bg-white dark:bg-[#1A1D24] shadow-2xl z-50 flex flex-col border-t-2 border-[#00D09C] transform transition-all duration-300 ease-in-out ${
+          isPortfolioSidebarOpen ? 'translate-y-0' : 'translate-y-full'
+        }`} style={{ height: isPortfolioSidebarOpen ? '40vh' : '0' }}>
+          {/* Handle Bar for Dragging (Visual Indicator) */}
+          <div className="flex items-center justify-center py-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-[#23272F]" onClick={() => setIsPortfolioSidebarOpen(false)}>
+            <div className="w-12 h-1 rounded-full bg-gray-300 dark:bg-gray-600"></div>
+          </div>
+          
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#131722]">
+            <div className="flex items-center space-x-2">
+              <FileBarChart className="w-4 h-4 text-[#00D09C]" />
+              <h2 className="text-base font-semibold text-[#44475B] dark:text-white">Smart Portfolio Generator</h2>
+            </div>
+            <button 
               onClick={() => setIsPortfolioSidebarOpen(false)}
-            ></div>
-            
-            {/* Modal Window */}
-            <div className="fixed inset-x-0 top-20 mx-auto w-[95%] max-w-[1400px] bg-white dark:bg-[#1A1D24] rounded-lg shadow-2xl z-50 max-h-[85vh] overflow-hidden flex flex-col border border-gray-200 dark:border-gray-800">
-              {/* Modal Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#131722]">
-                <div className="flex items-center space-x-3">
-                  <FileBarChart className="w-5 h-5 text-[#00D09C]" />
-                  <h2 className="text-lg font-semibold text-[#44475B] dark:text-white">Smart Portfolio Generator</h2>
-                </div>
-                <button 
-                  onClick={() => setIsPortfolioSidebarOpen(false)}
-                  className="p-2 rounded hover:bg-gray-200 dark:hover:bg-[#23272F] transition-colors"
-                >
-                  <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                </button>
-              </div>
+              className="p-1 rounded hover:bg-gray-200 dark:hover:bg-[#23272F] transition-colors"
+            >
+              <X className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+            </button>
+          </div>
 
-              {/* Modal Content */}
-              <div className="flex-1 overflow-y-auto scrollbar-hide p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto scrollbar-hide p-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {/* Date Selection */}
-                  <div className="space-y-3">
-                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Date Selection</label>
-                    <div className="flex gap-2">
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Date Selection</label>
+                    <div className="flex gap-1">
                       <button
                         onClick={() => setDateSelectionMode('manual')}
-                        className={`flex-1 px-4 py-2 text-sm rounded transition-colors ${dateSelectionMode === 'manual' ? 'bg-[#00D09C] text-white' : 'bg-gray-100 dark:bg-[#1F2228] text-gray-700 dark:text-gray-300'}`}
+                        className={`flex-1 px-2 py-1 text-xs rounded transition-colors ${dateSelectionMode === 'manual' ? 'bg-[#00D09C] text-white' : 'bg-gray-100 dark:bg-[#1F2228] text-gray-700 dark:text-gray-300'}`}
                       >Manual</button>
                       <button
                         onClick={() => setDateSelectionMode('chart')}
-                        className={`flex-1 px-4 py-2 text-sm rounded transition-colors ${dateSelectionMode === 'chart' ? 'bg-[#00D09C] text-white' : 'bg-gray-100 dark:bg-[#1F2228] text-gray-700 dark:text-gray-300'}`}
+                        className={`flex-1 px-2 py-1 text-xs rounded transition-colors ${dateSelectionMode === 'chart' ? 'bg-[#00D09C] text-white' : 'bg-gray-100 dark:bg-[#1F2228] text-gray-700 dark:text-gray-300'}`}
                       >From Chart</button>
                     </div>
                     {dateSelectionMode === 'manual' ? (
-                      <div className="space-y-2">
+                      <div className="space-y-1">
                         <input 
                           type="date" 
                           value={portfolioStartDate} 
                           onChange={e => setPortfolioStartDate(e.target.value)} 
-                          className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-[#23272F] border border-gray-300 dark:border-gray-700 rounded text-gray-900 dark:text-gray-100" 
+                          className="w-full px-2 py-1 text-xs bg-gray-100 dark:bg-[#23272F] border border-gray-300 dark:border-gray-700 rounded text-gray-900 dark:text-gray-100" 
                         />
                         <input 
                           type="date" 
                           value={portfolioEndDate} 
                           onChange={e => setPortfolioEndDate(e.target.value)} 
-                          className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-[#23272F] border border-gray-300 dark:border-gray-700 rounded text-gray-900 dark:text-gray-100" 
+                          className="w-full px-2 py-1 text-xs bg-gray-100 dark:bg-[#23272F] border border-gray-300 dark:border-gray-700 rounded text-gray-900 dark:text-gray-100" 
                         />
                       </div>
                     ) : (
-                      <div className="space-y-2">
-                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded p-3">
-                          <p className="text-xs font-medium text-blue-700 dark:text-blue-400 mb-2">Chart Selection Mode:</p>
-                          <ul className="text-xs text-blue-700 dark:text-blue-400 space-y-1 list-disc list-inside">
+                      <div className="space-y-1">
+                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded p-2">
+                          <p className="text-[10px] font-medium text-blue-700 dark:text-blue-400 mb-1">Chart Selection Mode:</p>
+                          <ul className="text-[10px] text-blue-700 dark:text-blue-400 space-y-0.5 list-disc list-inside">
                             <li>Left-click chart: Set start date</li>
                             <li>Left-click again: Set end date</li>
                             <li>Right-click: Clear selection</li>
                           </ul>
                         </div>
                         {(chartSelectedStart || chartSelectedEnd) && (
-                          <div className="bg-gray-100 dark:bg-[#23272F] rounded p-3 space-y-1">
+                          <div className="bg-gray-100 dark:bg-[#23272F] rounded p-2 space-y-0.5">
                             {chartSelectedStart && (
-                              <div className="text-sm text-gray-700 dark:text-gray-300">
+                              <div className="text-[10px] text-gray-700 dark:text-gray-300">
                                 <span className="font-semibold">Start:</span> {new Date(chartSelectedStart * 1000).toLocaleDateString()}
                               </div>
                             )}
                             {chartSelectedEnd && (
-                              <div className="text-sm text-gray-700 dark:text-gray-300">
+                              <div className="text-[10px] text-gray-700 dark:text-gray-300">
                                 <span className="font-semibold">End:</span> {new Date(chartSelectedEnd * 1000).toLocaleDateString()}
                               </div>
                             )}
@@ -1265,12 +1263,12 @@ export default function Terminal() {
                   </div>
 
                   {/* Risk Appetite */}
-                  <div className="space-y-3">
-                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Risk Appetite</label>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Risk Appetite</label>
                     <select
                       value={riskAppetite}
                       onChange={e => setRiskAppetite(e.target.value)}
-                      className="w-full px-4 py-2 text-sm bg-gray-100 dark:bg-[#23272F] border border-gray-300 dark:border-gray-700 rounded text-gray-900 dark:text-gray-100"
+                      className="w-full px-2 py-1 text-xs bg-gray-100 dark:bg-[#23272F] border border-gray-300 dark:border-gray-700 rounded text-gray-900 dark:text-gray-100"
                     >
                       <option value="low">Low Risk</option>
                       <option value="moderate">Moderate Risk</option>
@@ -1279,8 +1277,8 @@ export default function Terminal() {
                   </div>
 
                   {/* Target Return */}
-                  <div className="space-y-3">
-                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                       Target Return: <span className="text-[#00D09C] font-bold">{targetReturn}%</span>
                     </label>
                     <input
@@ -1290,18 +1288,18 @@ export default function Terminal() {
                       step="1"
                       value={targetReturn}
                       onChange={e => setTargetReturn(Number(e.target.value))}
-                      className="w-full h-3 rounded-lg appearance-none bg-gray-200 dark:bg-[#23272F] accent-[#00D09C] custom-slider"
+                      className="w-full h-2 rounded-lg appearance-none bg-gray-200 dark:bg-[#23272F] accent-[#00D09C] custom-slider"
                       style={{ accentColor: '#00D09C' }}
                     />
-                    <div className="flex justify-between text-xs text-gray-500">
+                    <div className="flex justify-between text-[10px] text-gray-500">
                       <span>5%</span>
                       <span>30%</span>
                     </div>
                   </div>
 
                   {/* Investment Horizon */}
-                  <div className="space-y-3">
-                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                       Investment Horizon: <span className="text-[#00D09C] font-bold">{horizonYears} years</span>
                     </label>
                     <input
@@ -1311,30 +1309,30 @@ export default function Terminal() {
                       step="1"
                       value={horizonYears}
                       onChange={e => setHorizonYears(Number(e.target.value))}
-                      className="w-full h-3 rounded-lg appearance-none bg-gray-200 dark:bg-[#23272F] accent-[#00D09C] custom-slider"
+                      className="w-full h-2 rounded-lg appearance-none bg-gray-200 dark:bg-[#23272F] accent-[#00D09C] custom-slider"
                       style={{ accentColor: '#00D09C' }}
                     />
-                    <div className="flex justify-between text-xs text-gray-500">
+                    <div className="flex justify-between text-[10px] text-gray-500">
                       <span>1y</span>
                       <span>20y</span>
                     </div>
                   </div>
 
                   {/* Initial Capital */}
-                  <div className="space-y-3">
-                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Initial Capital (₹)</label>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Initial Capital (₹)</label>
                     <input
                       type="number"
                       value={initialCapital}
                       onChange={e => setInitialCapital(Number(e.target.value))}
-                      className="w-full px-4 py-2 text-sm bg-gray-100 dark:bg-[#23272F] border border-gray-300 dark:border-gray-700 rounded text-gray-900 dark:text-gray-100"
+                      className="w-full px-2 py-1 text-xs bg-gray-100 dark:bg-[#23272F] border border-gray-300 dark:border-gray-700 rounded text-gray-900 dark:text-gray-100"
                       placeholder="100000"
                     />
                   </div>
 
                   {/* Inflation Rate */}
-                  <div className="space-y-3">
-                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                       Inflation Rate: <span className="text-[#00D09C] font-bold">{inflation}%</span>
                     </label>
                     <input
@@ -1344,38 +1342,38 @@ export default function Terminal() {
                       step="0.5"
                       value={inflation}
                       onChange={e => setInflation(Number(e.target.value))}
-                      className="w-full h-3 rounded-lg appearance-none bg-gray-200 dark:bg-[#23272F] accent-[#00D09C] custom-slider"
+                      className="w-full h-2 rounded-lg appearance-none bg-gray-200 dark:bg-[#23272F] accent-[#00D09C] custom-slider"
                       style={{ accentColor: '#00D09C' }}
                     />
-                    <div className="flex justify-between text-xs text-gray-500">
+                    <div className="flex justify-between text-[10px] text-gray-500">
                       <span>2%</span>
                       <span>12%</span>
                     </div>
                   </div>
 
                   {/* Include Sectors */}
-                  <div className="space-y-3 md:col-span-2 lg:col-span-3">
-                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Include Sectors</label>
-                    <div className="flex flex-wrap gap-2">
+                  <div className="space-y-2 md:col-span-2 lg:col-span-3">
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Include Sectors</label>
+                    <div className="flex flex-wrap gap-1">
                       {sectorOptions.map(sector => (
                         <button
                           key={sector}
                           onClick={() => setSectorsInclude(prev => prev.includes(sector) ? prev.filter(s => s !== sector) : [...prev, sector])}
-                          className={`px-3 py-1.5 text-xs rounded transition-colors ${sectorsInclude.includes(sector) ? 'bg-[#00D09C] text-white' : 'bg-gray-100 dark:bg-[#23272F] text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#2A2E39]'}`}
+                          className={`px-2 py-1 text-[10px] rounded transition-colors ${sectorsInclude.includes(sector) ? 'bg-[#00D09C] text-white' : 'bg-gray-100 dark:bg-[#23272F] text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#2A2E39]'}`}
                         >{sector}</button>
                       ))}
                     </div>
                   </div>
 
                   {/* Exclude Sectors */}
-                  <div className="space-y-3 md:col-span-2 lg:col-span-3">
-                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Exclude Sectors</label>
-                    <div className="flex flex-wrap gap-2">
+                  <div className="space-y-2 md:col-span-2 lg:col-span-3">
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Exclude Sectors</label>
+                    <div className="flex flex-wrap gap-1">
                       {sectorOptions.map(sector => (
                         <button
                           key={sector}
                           onClick={() => setSectorsExclude(prev => prev.includes(sector) ? prev.filter(s => s !== sector) : [...prev, sector])}
-                          className={`px-3 py-1.5 text-xs rounded transition-colors ${sectorsExclude.includes(sector) ? 'bg-red-500 text-white' : 'bg-gray-100 dark:bg-[#23272F] text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#2A2E39]'}`}
+                          className={`px-2 py-1 text-[10px] rounded transition-colors ${sectorsExclude.includes(sector) ? 'bg-red-500 text-white' : 'bg-gray-100 dark:bg-[#23272F] text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#2A2E39]'}`}
                         >{sector}</button>
                       ))}
                     </div>
@@ -1383,11 +1381,11 @@ export default function Terminal() {
                 </div>
               </div>
 
-              {/* Modal Footer */}
-              <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#131722]">
+              {/* Footer */}
+              <div className="flex items-center justify-between px-4 py-2 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#131722]">
                 <button
                   onClick={() => setIsPortfolioSidebarOpen(false)}
-                  className="px-6 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-[#23272F] hover:bg-gray-300 dark:hover:bg-[#2A2E39] rounded transition-colors"
+                  className="px-4 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-[#23272F] hover:bg-gray-300 dark:hover:bg-[#2A2E39] rounded transition-colors"
                 >
                   Cancel
                 </button>
@@ -1406,14 +1404,13 @@ export default function Terminal() {
                     });
                     setIsPortfolioSidebarOpen(false);
                   }}
-                  className="px-8 py-2.5 text-sm font-semibold bg-[#00D09C] hover:bg-[#00B386] text-white rounded transition-colors"
+                  className="px-5 py-1.5 text-xs font-semibold bg-[#00D09C] hover:bg-[#00B386] text-white rounded transition-colors"
                 >
                   Generate Portfolio
                 </button>
               </div>
             </div>
-          </>
-        )}
+        </div>
 
         {/* All Indices Sidebar Modal */}
         {isIndicesOpen && (
@@ -1467,7 +1464,6 @@ export default function Terminal() {
               </button>
             </div>
           </div>
-        </div>
         </div>
       </PageTransition>
     </div>

@@ -16,6 +16,7 @@ interface TradingChartProps {
   chartDateSelectionMode?: boolean;
   selectedStartDate?: number | null;
   selectedEndDate?: number | null;
+  refreshTrigger?: number;
 }
 
 export default function TradingChart({ 
@@ -28,7 +29,8 @@ export default function TradingChart({
   onChartRightClick,
   chartDateSelectionMode = false,
   selectedStartDate,
-  selectedEndDate
+  selectedEndDate,
+  refreshTrigger = 0
 }: TradingChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<any>(null);
@@ -1094,6 +1096,82 @@ export default function TradingChart({
       fetchChartData();
     }
   }, [symbol, interval]);
+
+  // Handle refresh trigger - fetch new data without resetting zoom/pan
+  useEffect(() => {
+    if (refreshTrigger > 0 && chartRef.current && candlestickSeriesRef.current && allDataRef.current.length > 0) {
+      console.log('🔄 Refresh triggered, fetching latest data without resetting view...');
+      
+      // Save current visible range to restore it later
+      const timeScale = chartRef.current.timeScale();
+      const visibleLogicalRange = timeScale.getVisibleLogicalRange();
+      
+      // Fetch only the latest data point(s) - get data from the last known timestamp to now
+      const lastTimestamp = allDataRef.current[allDataRef.current.length - 1]?.time || 0;
+      
+      // Fetch new data and append it
+      fetchLatestData(lastTimestamp).then(() => {
+        // Restore the visible range after data is updated
+        if (visibleLogicalRange) {
+          try {
+            timeScale.setVisibleLogicalRange(visibleLogicalRange);
+            console.log('✅ Restored visible range after refresh');
+          } catch (e) {
+            console.warn('Could not restore visible range:', e);
+          }
+        }
+      });
+    }
+  }, [refreshTrigger]);
+
+  // Fetch only the latest data points (for live updates)
+  const fetchLatestData = async (fromTimestamp: number) => {
+    try {
+      const now = Math.floor(Date.now() / 1000);
+      const { resolution } = getTimeRange(interval);
+      const apiKey = process.env.NEXT_PUBLIC_FINNHUB_API_KEY;
+      
+      let finnhubSymbol = symbol.replace('.NS', '');
+      
+      const url = `https://finnhub.io/api/v1/stock/candle?symbol=${finnhubSymbol}&resolution=${resolution}&from=${fromTimestamp}&to=${now}&token=${apiKey}`;
+      console.log('📡 Fetching latest data from:', new Date(fromTimestamp * 1000).toISOString(), 'to now');
+      
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.s === 'ok' && data.t && data.t.length > 0) {
+        const newCandles = data.t
+          .map((timestamp: number, index: number) => ({
+            time: timestamp,
+            open: data.o[index],
+            high: data.h[index],
+            low: data.l[index],
+            close: data.c[index],
+          }))
+          .filter((candle: any) => candle.time > fromTimestamp); // Only new data
+
+        if (newCandles.length > 0) {
+          console.log('✨ Appending', newCandles.length, 'new candles');
+          
+          // Append new data
+          allDataRef.current = validateAndSortData([...allDataRef.current, ...newCandles]);
+          
+          // Update the chart with all data
+          if (candlestickSeriesRef.current && chartRef.current) {
+            const formattedData = formatDataForChartType(allDataRef.current, chartType);
+            candlestickSeriesRef.current.setData(formattedData);
+            
+            // Update indicators
+            updateIndicators();
+          }
+        } else {
+          console.log('ℹ️ No new data available');
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching latest data:', error);
+    }
+  };
 
   // Update chart colors when theme changes
   useEffect(() => {
