@@ -44,6 +44,8 @@ export default function TradingChart({
   const oldestTimestampRef = useRef<number>(0);
   const isLoadingMoreRef = useRef<boolean>(false);
   const activeIndicatorsRef = useRef<string[]>(activeIndicators); // Store current active indicators
+  const highlightOverlayRef = useRef<HTMLDivElement>(null);
+  const [isDateSelectionActive, setIsDateSelectionActive] = useState(false);
   const { theme } = useTheme();
 
   // Update ref whenever activeIndicators prop changes
@@ -1031,30 +1033,6 @@ export default function TradingChart({
       }
     });
 
-    // Add click handler for portfolio date selection
-    if (chartContainerRef.current) {
-      const handleClick = (e: MouseEvent) => {
-        if (chartDateSelectionMode && onChartClick && chartRef.current) {
-          const timeScale = chartRef.current.timeScale();
-          const coordinate = e.offsetX;
-          const timestamp = timeScale.coordinateToTime(coordinate);
-          if (timestamp) {
-            onChartClick(timestamp as number);
-          }
-        }
-      };
-
-      const handleRightClick = (e: MouseEvent) => {
-        if (chartDateSelectionMode && onChartRightClick) {
-          e.preventDefault();
-          onChartRightClick();
-        }
-      };
-
-      chartContainerRef.current.addEventListener('click', handleClick);
-      chartContainerRef.current.addEventListener('contextmenu', handleRightClick);
-    }
-
     // Handle resize
     const handleResize = () => {
       if (chartContainerRef.current && chartRef.current) {
@@ -1123,6 +1101,53 @@ export default function TradingChart({
       });
     }
   }, [refreshTrigger]);
+
+  // Separate effect for chart click handlers
+  useEffect(() => {
+    console.log('🎯 Setting up click handlers. Mode:', chartDateSelectionMode || isDateSelectionActive);
+    
+    if (!chartContainerRef.current || !chartRef.current) {
+      console.log('❌ Container or chart not ready');
+      return;
+    }
+
+    const container = chartContainerRef.current;
+    const isActive = chartDateSelectionMode || isDateSelectionActive;
+    
+    const handleClick = (e: MouseEvent) => {
+      console.log('🖱️ Click detected. Mode:', isActive, 'HasCallback:', !!onChartClick);
+      
+      if (isActive && onChartClick && chartRef.current) {
+        const timeScale = chartRef.current.timeScale();
+        const coordinate = e.offsetX;
+        const timestamp = timeScale.coordinateToTime(coordinate);
+        if (timestamp) {
+          console.log('📅 Chart clicked, timestamp:', timestamp, new Date(timestamp * 1000));
+          onChartClick(timestamp as number);
+        } else {
+          console.log('⚠️ Could not convert coordinate to timestamp');
+        }
+      }
+    };
+
+    const handleRightClick = (e: MouseEvent) => {
+      if (isActive && onChartRightClick) {
+        e.preventDefault();
+        console.log('🔄 Right click - clearing selection');
+        onChartRightClick();
+      }
+    };
+
+    container.addEventListener('click', handleClick);
+    container.addEventListener('contextmenu', handleRightClick);
+    console.log('✅ Click handlers attached');
+
+    return () => {
+      container.removeEventListener('click', handleClick);
+      container.removeEventListener('contextmenu', handleRightClick);
+      console.log('🧹 Click handlers cleaned up');
+    };
+  }, [chartDateSelectionMode, isDateSelectionActive, onChartClick, onChartRightClick]);
 
   // Fetch only the latest data points (for live updates)
   const fetchLatestData = async (fromTimestamp: number) => {
@@ -1212,6 +1237,95 @@ export default function TradingChart({
       },
     });
   }, [theme]);
+
+  // Update the visual highlight overlay when dates change
+  useEffect(() => {
+    console.log('🎨 Overlay effect triggered:', {
+      chartDateSelectionMode,
+      selectedStartDate,
+      selectedEndDate,
+      hasChartRef: !!chartRef.current,
+      hasOverlayRef: !!highlightOverlayRef.current
+    });
+    
+    if (!chartRef.current || !highlightOverlayRef.current) return;
+    
+    const updateOverlayPosition = () => {
+      if (!chartRef.current || !highlightOverlayRef.current) return;
+      
+      const overlay = highlightOverlayRef.current;
+      
+      // Show overlay whenever dates are selected, regardless of mode
+      // This ensures the highlight persists even when portfolio tab is closed
+      if (!selectedStartDate && !selectedEndDate) {
+        overlay.style.display = 'none';
+        console.log('🚫 Hiding overlay - no dates selected');
+        return;
+      }
+      
+      // Show overlay when we have at least one date
+      if (selectedStartDate || selectedEndDate) {
+        overlay.style.display = 'block';
+        
+        const timeScale = chartRef.current.timeScale();
+        const chartContainer = chartContainerRef.current;
+        if (!chartContainer) return;
+        
+        const containerRect = chartContainer.getBoundingClientRect();
+        const chartWidth = containerRect.width;
+        
+        let startX = 0;
+        let endX = chartWidth;
+        
+        try {
+          if (selectedStartDate) {
+            startX = timeScale.timeToCoordinate(selectedStartDate) || 0;
+          }
+          
+          if (selectedEndDate) {
+            endX = timeScale.timeToCoordinate(selectedEndDate) || chartWidth;
+          } else if (selectedStartDate) {
+            // If only start date is selected, extend to the right edge
+            endX = chartWidth;
+          }
+          
+          // Ensure proper order (start should be left of end)
+          const left = Math.min(startX, endX);
+          const right = Math.max(startX, endX);
+          const width = right - left;
+          
+          // Position the overlay with gradient
+          overlay.style.left = `${left}px`;
+          overlay.style.width = `${width}px`;
+          overlay.style.height = '100%';
+          overlay.style.top = '0';
+          overlay.style.background = 'linear-gradient(90deg, rgba(0, 208, 156, 0.05) 0%, rgba(0, 208, 156, 0.2) 50%, rgba(0, 208, 156, 0.05) 100%)';
+          
+          console.log('✅ Overlay positioned:', { left, width, startX, endX });
+          
+        } catch (e) {
+          console.warn('Could not position highlight overlay:', e);
+        }
+      }
+    };
+    
+    // Initial update
+    updateOverlayPosition();
+    
+    // Subscribe to visible range changes to update overlay position on pan/zoom
+    const chart = chartRef.current;
+    if (chart) {
+      const unsubscribe = chart.timeScale().subscribeVisibleLogicalRangeChange(() => {
+        updateOverlayPosition();
+      });
+      
+      return () => {
+        if (unsubscribe) {
+          unsubscribe();
+        }
+      };
+    }
+  }, [selectedStartDate, selectedEndDate]);
 
   // Update series when chart type changes
   useEffect(() => {
@@ -1541,13 +1655,89 @@ export default function TradingChart({
             <span>Loading historical data...</span>
           </div>
         )}
+        
+        {/* Date Selection Toggle Button - Positioned beside OHLC bar */}
+        <button
+          onClick={() => {
+            setIsDateSelectionActive(!isDateSelectionActive);
+            if (isDateSelectionActive && onChartRightClick) {
+              // Clear selection when toggling off
+              onChartRightClick();
+            }
+          }}
+          className={`absolute top-14 left-4 text-xs px-3 py-2 rounded-md shadow-lg z-20 transition-all duration-200 flex items-center space-x-2 ${
+            isDateSelectionActive || chartDateSelectionMode
+              ? 'bg-[#00D09C] text-white hover:bg-[#00B386]'
+              : 'bg-gray-100 dark:bg-[#1A1D24] text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#23272F]'
+          }`}
+          title={isDateSelectionActive ? "Click to disable date selection" : "Click to select date range from chart"}
+        >
+          <svg 
+            className="w-3.5 h-3.5" 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              strokeWidth={2} 
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" 
+            />
+          </svg>
+          <span className="font-medium">
+            {isDateSelectionActive || chartDateSelectionMode ? 'Date Selection ON' : 'Select Period'}
+          </span>
+        </button>
+        
         {/* Portfolio Date Selection Indicator */}
-        {chartDateSelectionMode && (
-          <div className="absolute top-4 right-4 bg-blue-500 text-white text-xs px-3 py-2 rounded-md shadow-lg z-10 pointer-events-none">
-            📅 Date Selection Mode Active
+        {(chartDateSelectionMode || isDateSelectionActive) && (
+          <div className="absolute top-4 right-4 bg-[#00D09C] text-white text-xs px-3 py-2 rounded-md shadow-lg z-10 pointer-events-none max-w-xs">
+            <div className="font-semibold mb-1">Date Selection Active</div>
+            {selectedStartDate && (
+              <div className="text-[10px] opacity-90 leading-relaxed">
+                <span className="font-medium">Start:</span>{' '}
+                {new Date(selectedStartDate * 1000).toLocaleString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true
+                })}
+              </div>
+            )}
+            {selectedEndDate && (
+              <div className="text-[10px] opacity-90 leading-relaxed">
+                <span className="font-medium">End:</span>{' '}
+                {new Date(selectedEndDate * 1000).toLocaleString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true
+                })}
+              </div>
+            )}
+            {selectedStartDate && !selectedEndDate && (
+              <div className="text-[10px] mt-1 opacity-75 italic">
+                Click again to set end date
+              </div>
+            )}
           </div>
         )}
-        <div ref={chartContainerRef} className="w-full h-full" />
+        {/* Highlight overlay for selected date range */}
+        <div 
+          ref={highlightOverlayRef}
+          className="absolute pointer-events-none z-[5]"
+          style={{
+            display: 'none',
+            borderLeft: '2px solid rgba(0, 208, 156, 0.6)',
+            borderRight: '2px solid rgba(0, 208, 156, 0.6)',
+          }}
+        />
+        <div ref={chartContainerRef} className="w-full h-full cursor-crosshair" />
       </div>
 
       {/* Render separate indicator panes */}

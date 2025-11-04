@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "../context/ThemeContext";
 import PageTransition from "../components/PageTransition";
 import TradingChart from "../components/TradingChart";
+import "./slider-styles.css";
 
 export default function Terminal() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -60,6 +61,10 @@ export default function Terminal() {
   const [inflation, setInflation] = useState(6);
   const [sectorsInclude, setSectorsInclude] = useState<string[]>([]);
   const [sectorsExclude, setSectorsExclude] = useState<string[]>([]);
+  const [portfolioSidebarHeight, setPortfolioSidebarHeight] = useState(40); // 40vh
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartY, setDragStartY] = useState(0);
+  const [dragStartHeight, setDragStartHeight] = useState(40);
   
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
@@ -71,6 +76,41 @@ export default function Terminal() {
 
     return () => clearInterval(refreshInterval);
   }, []);
+
+  // Drag handlers for resizable sidebar
+  const handleDragStart = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setDragStartY(e.clientY);
+    setDragStartHeight(portfolioSidebarHeight);
+    e.preventDefault();
+  };
+
+  useEffect(() => {
+    const handleDragMove = (e: MouseEvent) => {
+      if (!isDragging) return;
+      
+      const deltaY = dragStartY - e.clientY;
+      const windowHeight = window.innerHeight;
+      const deltaVh = (deltaY / windowHeight) * 100;
+      const newHeight = Math.max(20, Math.min(80, dragStartHeight + deltaVh));
+      
+      setPortfolioSidebarHeight(newHeight);
+    };
+
+    const handleDragEnd = () => {
+      setIsDragging(false);
+    };
+
+    if (isDragging) {
+      document.addEventListener('mousemove', handleDragMove);
+      document.addEventListener('mouseup', handleDragEnd);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleDragMove);
+      document.removeEventListener('mouseup', handleDragEnd);
+    };
+  }, [isDragging, dragStartY, dragStartHeight]);
 
   const toggleIndicator = (indicatorId: string) => {
     setActiveIndicators(prev => 
@@ -124,23 +164,27 @@ export default function Terminal() {
     router.push('/');
   };
 
-  // Handle chart click for date selection in Portfolio Generator
+  // Handle chart click for date selection (works independently or with Portfolio Generator)
   const handleChartClick = (timestamp: number) => {
-    if (dateSelectionMode === "chart" && isPortfolioSidebarOpen) {
-      if (!chartSelectedStart) {
-        setChartSelectedStart(timestamp);
-      } else if (!chartSelectedEnd) {
-        setChartSelectedEnd(timestamp);
-      }
+    if (!chartSelectedStart) {
+      setChartSelectedStart(timestamp);
+      console.log('📅 Start date set:', new Date(timestamp * 1000));
+    } else if (!chartSelectedEnd) {
+      setChartSelectedEnd(timestamp);
+      console.log('📅 End date set:', new Date(timestamp * 1000));
+    } else {
+      // If both are set, reset and start over
+      setChartSelectedStart(timestamp);
+      setChartSelectedEnd(null);
+      console.log('📅 Reset - Start date set:', new Date(timestamp * 1000));
     }
   };
 
   // Handle right-click to clear chart date selection
   const handleChartRightClick = () => {
-    if (dateSelectionMode === "chart" && isPortfolioSidebarOpen) {
-      setChartSelectedStart(null);
-      setChartSelectedEnd(null);
-    }
+    setChartSelectedStart(null);
+    setChartSelectedEnd(null);
+    console.log('🔄 Date selection cleared');
   };
 
   // Sector options for portfolio generator
@@ -427,79 +471,6 @@ export default function Terminal() {
 
   return (
     <div>
-      <style jsx global>{`
-        input[type='range'].custom-slider {
-          -webkit-appearance: none;
-          width: 100%;
-          height: 6px;
-          background: #e5e7eb;
-          border-radius: 4px;
-          outline: none;
-          transition: background 0.2s;
-        }
-        .dark input[type='range'].custom-slider {
-          background: #23272F;
-        }
-        input[type='range'].custom-slider::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          appearance: none;
-          width: 18px;
-          height: 18px;
-          border-radius: 50%;
-          background: #00D09C;
-          border: 2px solid #fff;
-          box-shadow: 0 1px 4px rgba(0,0,0,0.12);
-          cursor: pointer;
-          transition: background 0.2s;
-        }
-        .dark input[type='range'].custom-slider::-webkit-slider-thumb {
-          background: #00D09C;
-          border: 2px solid #23272F;
-        }
-        input[type='range'].custom-slider::-moz-range-thumb {
-          width: 18px;
-          height: 18px;
-          border-radius: 50%;
-          background: #00D09C;
-          border: 2px solid #fff;
-          box-shadow: 0 1px 4px rgba(0,0,0,0.12);
-          cursor: pointer;
-        }
-        .dark input[type='range'].custom-slider::-moz-range-thumb {
-          background: #00D09C;
-          border: 2px solid #23272F;
-        }
-        input[type='range'].custom-slider::-ms-thumb {
-          width: 18px;
-          height: 18px;
-          border-radius: 50%;
-          background: #00D09C;
-          border: 2px solid #fff;
-          box-shadow: 0 1px 4px rgba(0,0,0,0.12);
-          cursor: pointer;
-        }
-        .dark input[type='range'].custom-slider::-ms-thumb {
-          background: #00D09C;
-          border: 2px solid #23272F;
-        }
-        input[type='range'].custom-slider:focus {
-          outline: none;
-        }
-        input[type='range'].custom-slider::-webkit-slider-runnable-track {
-          height: 6px;
-          border-radius: 4px;
-        }
-        input[type='range'].custom-slider::-ms-fill-lower {
-          background: #00D09C;
-        }
-        input[type='range'].custom-slider::-ms-fill-upper {
-          background: #e5e7eb;
-        }
-        .dark input[type='range'].custom-slider::-ms-fill-upper {
-          background: #23272F;
-        }
-      `}</style>
-      
       <PageTransition>
         <div className="h-screen flex flex-col bg-[#F8F9FA] dark:bg-[#0C0E12] transition-colors duration-300 overflow-hidden">
       {/* Top Navigation */}
@@ -1181,12 +1152,15 @@ export default function Terminal() {
         </div>
 
         {/* Portfolio Generator Bottom Sidebar */}
-        <div className={`fixed bottom-0 left-0 right-0 bg-white dark:bg-[#1A1D24] shadow-2xl z-50 flex flex-col border-t-2 border-[#00D09C] transform transition-all duration-300 ease-in-out ${
+        <div className={`fixed bottom-0 left-0 right-0 bg-white dark:bg-[#1A1D24] shadow-2xl z-50 flex flex-col border-t-2 border-[#00D09C] transform transition-transform duration-300 ease-in-out ${
           isPortfolioSidebarOpen ? 'translate-y-0' : 'translate-y-full'
-        }`} style={{ height: isPortfolioSidebarOpen ? '40vh' : '0' }}>
-          {/* Handle Bar for Dragging (Visual Indicator) */}
-          <div className="flex items-center justify-center py-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-[#23272F]" onClick={() => setIsPortfolioSidebarOpen(false)}>
-            <div className="w-12 h-1 rounded-full bg-gray-300 dark:bg-gray-600"></div>
+        }`} style={{ height: isPortfolioSidebarOpen ? `${portfolioSidebarHeight}vh` : '0' }}>
+          {/* Drag Handle for Resizing */}
+          <div 
+            className={`flex items-center justify-center py-1 bg-gray-100 dark:bg-[#23272F] border-b border-gray-200 dark:border-gray-800 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'} select-none`}
+            onMouseDown={handleDragStart}
+          >
+            <div className="w-12 h-1 rounded-full bg-gray-400 dark:bg-gray-500"></div>
           </div>
           
           {/* Header */}
@@ -1239,21 +1213,37 @@ export default function Terminal() {
                         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded p-2">
                           <p className="text-[10px] font-medium text-blue-700 dark:text-blue-400 mb-1">Chart Selection Mode:</p>
                           <ul className="text-[10px] text-blue-700 dark:text-blue-400 space-y-0.5 list-disc list-inside">
-                            <li>Left-click chart: Set start date</li>
-                            <li>Left-click again: Set end date</li>
+                            <li>Click chart: Set start date</li>
+                            <li>Click again: Set end date</li>
                             <li>Right-click: Clear selection</li>
                           </ul>
                         </div>
                         {(chartSelectedStart || chartSelectedEnd) && (
-                          <div className="bg-gray-100 dark:bg-[#23272F] rounded p-2 space-y-0.5">
+                          <div className="bg-[#00D09C]/10 dark:bg-[#00D09C]/20 border border-[#00D09C]/30 rounded p-2 space-y-0.5">
                             {chartSelectedStart && (
                               <div className="text-[10px] text-gray-700 dark:text-gray-300">
-                                <span className="font-semibold">Start:</span> {new Date(chartSelectedStart * 1000).toLocaleDateString()}
+                                <span className="font-semibold text-[#00D09C]">Start:</span>{' '}
+                                {new Date(chartSelectedStart * 1000).toLocaleString('en-US', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  hour12: true
+                                })}
                               </div>
                             )}
                             {chartSelectedEnd && (
                               <div className="text-[10px] text-gray-700 dark:text-gray-300">
-                                <span className="font-semibold">End:</span> {new Date(chartSelectedEnd * 1000).toLocaleDateString()}
+                                <span className="font-semibold text-[#00D09C]">End:</span>{' '}
+                                {new Date(chartSelectedEnd * 1000).toLocaleString('en-US', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  hour12: true
+                                })}
                               </div>
                             )}
                           </div>
