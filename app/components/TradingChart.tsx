@@ -506,12 +506,15 @@ export default function TradingChart({
 
   // Convert interval to Finnhub resolution and timestamp range
   const getTimeRange = (interval: string) => {
+    // Use a consistent "now" timestamp to ensure same data on repeated fetches
+    // For intraday intervals, align to current date's market hours
     const now = Math.floor(Date.now() / 1000);
     let from = now;
     let resolution = '1';
 
     switch(interval) {
       case '1d':
+        // For 1 day view, show current trading day (last 24 hours)
         from = now - (24 * 60 * 60);
         resolution = '1'; // 1 minute
         break;
@@ -547,7 +550,151 @@ export default function TradingChart({
     return { from, to: now, resolution };
   };
 
-  // Fetch data from Finnhub
+  // Fetch data from Yahoo Finance (for NSE stocks that Finnhub doesn't support)
+  const fetchYahooFinanceData = async (fromTimestamp: number, toTimestamp: number, appendData: boolean = false, isRefresh: boolean = false) => {
+    try {
+      const period1 = fromTimestamp;
+      const period2 = toTimestamp;
+      
+      // Map interval to Yahoo Finance format
+      let yahooInterval = '1d';
+      switch(interval) {
+        case '1d':
+          yahooInterval = '5m'; // Use 5min candles for 1 day to get more consistent data
+          break;
+        case '5d':
+          yahooInterval = '15m'; // Use 15min candles for 5 days
+          break;
+        case '1m':
+          yahooInterval = '1h';
+          break;
+        case '3m':
+        case '1y':
+          yahooInterval = '1d';
+          break;
+        case '5y':
+        case '10y':
+          yahooInterval = '1wk';
+          break;
+        default:
+          yahooInterval = '1d';
+      }
+      
+      // Use our Next.js API route to proxy the request (avoids CORS)
+      const url = `/api/yahoo-finance?symbol=${encodeURIComponent(symbol)}&period1=${period1}&period2=${period2}&interval=${yahooInterval}`;
+      console.log('🔍 Fetching from Yahoo Finance via proxy:', {
+        symbol: symbol,
+        interval: yahooInterval,
+        from: new Date(period1 * 1000).toLocaleString(),
+        to: new Date(period2 * 1000).toLocaleString(),
+        period1,
+        period2,
+        appendData,
+        timeRange: `${((period2 - period1) / 3600).toFixed(1)} hours`
+      });
+      
+      const response = await fetch(url);
+      const data = await response.json();
+      
+      console.log('📊 Yahoo Finance API Response:', {
+        symbol: symbol,
+        hasData: !!data?.chart?.result?.[0],
+        error: data?.chart?.error || data?.error || null,
+        resultLength: data?.chart?.result?.[0]?.timestamp?.length || 0,
+        appendData,
+        isRefresh
+      });
+
+      if (data?.chart?.result?.[0]?.timestamp) {
+        const result = data.chart.result[0];
+        const timestamps = result.timestamp;
+        const quotes = result.indicators.quote[0];
+        
+        const candlestickData = timestamps.map((timestamp: number, index: number) => ({
+          time: timestamp,
+          open: quotes.open[index] || quotes.close[index],
+          high: quotes.high[index] || quotes.close[index],
+          low: quotes.low[index] || quotes.close[index],
+          close: quotes.close[index],
+        })).filter((candle: any) => 
+          candle.open !== null && 
+          candle.high !== null && 
+          candle.low !== null && 
+          candle.close !== null
+        );
+
+        console.log('✅ Successfully processed', candlestickData.length, 'candles from Yahoo Finance');
+
+        if (appendData) {
+          allDataRef.current = validateAndSortData([...candlestickData, ...allDataRef.current]);
+          oldestTimestampRef.current = allDataRef.current[0]?.time || oldestTimestampRef.current;
+        } else {
+          allDataRef.current = validateAndSortData(candlestickData);
+          oldestTimestampRef.current = allDataRef.current[0]?.time || 0;
+        }
+
+        if (candlestickSeriesRef.current && chartRef.current) {
+          try {
+            const formattedData = formatDataForChartType(allDataRef.current, chartType);
+            console.log('📊 Setting', formattedData.length, 'data points to chart from Yahoo Finance');
+            candlestickSeriesRef.current.setData(formattedData);
+            updateIndicators();
+          } catch (e) {
+            console.error('Error setting Yahoo Finance chart data:', e);
+          }
+        }
+      } else {
+        // For refresh operations, just log info and keep existing data unchanged
+        if (isRefresh) {
+          console.log('ℹ️ Refresh: No new data from Yahoo Finance - keeping existing chart');
+          return;
+        }
+        
+        // For non-refresh failures, log as error
+        console.error('❌ No valid data from Yahoo Finance for:', symbol, '- Response:', data);
+        
+        // For initial load, always generate sample data so user sees something
+        // For append operations (loading more historical data), also generate sample data
+        if (!appendData) {
+          console.warn('⚠️ Falling back to sample data for initial load');
+          generateSampleData(fromTimestamp, appendData);
+        } else if (allDataRef.current.length === 0) {
+          // If append but no existing data, generate sample data
+          console.warn('⚠️ Falling back to sample data (no existing data)');
+          generateSampleData(fromTimestamp, appendData);
+        } else {
+          // For load-more operations, generate sample historical data
+          console.warn('⚠️ Generating sample historical data for append operation');
+          generateSampleData(fromTimestamp, appendData);
+        }
+      }
+    } catch (error) {
+      // For refresh operations, just log info and keep existing data unchanged
+      if (isRefresh) {
+        console.log('ℹ️ Refresh: Failed to fetch from Yahoo Finance - keeping existing chart');
+        return;
+      }
+      
+      // For non-refresh failures, log as error
+      console.error('❌ Error fetching Yahoo Finance data:', error);
+      
+      // Same logic as above
+      if (!appendData) {
+        console.warn('⚠️ Falling back to sample data for initial load');
+        generateSampleData(fromTimestamp, appendData);
+      } else if (allDataRef.current.length === 0) {
+        console.warn('⚠️ Falling back to sample data (no existing data)');
+        generateSampleData(fromTimestamp, appendData);
+      } else {
+        console.warn('⚠️ Generating sample historical data for append operation');
+        generateSampleData(fromTimestamp, appendData);
+      }
+    } finally {
+      if (!appendData) setIsLoading(false);
+    }
+  };
+
+  // Fetch data from Yahoo Finance (for NSE stocks) or Finnhub
   const fetchChartData = async (fromTimestamp?: number, appendData: boolean = false) => {
     if (!appendData) setIsLoading(true);
     
@@ -559,17 +706,25 @@ export default function TradingChart({
       }
       
       const { from, to, resolution } = getTimeRange(interval);
-      const apiKey = process.env.NEXT_PUBLIC_FINNHUB_API_KEY;
       
       // Use provided timestamp or default
       const startTime = fromTimestamp || from;
       
-      // For NSE stocks, try without the .NS suffix for Finnhub
-      let finnhubSymbol = symbol.replace('.NS', '');
+      // For NSE stocks, use Yahoo Finance API instead of Finnhub
+      if (symbol.endsWith('.NS')) {
+        console.log('🔍 Fetching NSE data from Yahoo Finance for:', symbol);
+        await fetchYahooFinanceData(startTime, to, appendData);
+        return;
+      }
+      
+      // For other stocks, use Finnhub
+      const apiKey = process.env.NEXT_PUBLIC_FINNHUB_API_KEY;
+      let finnhubSymbol = symbol;
       
       const url = `https://finnhub.io/api/v1/stock/candle?symbol=${finnhubSymbol}&resolution=${resolution}&from=${startTime}&to=${to}&token=${apiKey}`;
       console.log('🔍 Fetching data from Finnhub:', {
-        symbol: finnhubSymbol,
+        originalSymbol: symbol,
+        finnhubSymbol: finnhubSymbol,
         resolution,
         from: new Date(startTime * 1000).toISOString(),
         to: new Date(to * 1000).toISOString(),
@@ -581,7 +736,9 @@ export default function TradingChart({
 
       console.log('📊 Finnhub API Response:', {
         status: data.s,
+        error: data.error || null,
         dataPoints: data.t?.length || 0,
+        symbol: finnhubSymbol,
         firstCandle: data.t && data.t.length > 0 ? {
           time: new Date(data.t[0] * 1000).toISOString(),
           open: data.o[0],
@@ -597,6 +754,11 @@ export default function TradingChart({
           close: data.c[data.c.length - 1]
         } : null
       });
+      
+      // If Finnhub fails for NSE stocks, log more details
+      if (data.s !== 'ok') {
+        console.warn('❌ Finnhub API failed for', finnhubSymbol, '- Full response:', data);
+      }
 
       if (data.s === 'ok' && data.t && data.t.length > 0) {
         const candlestickData = data.t.map((timestamp: number, index: number) => ({
@@ -783,19 +945,37 @@ export default function TradingChart({
     console.log('✅ Completed loading more historical data');
   };
 
-  // Initialize chart
+  // Robust chart recreation: re-create chart instance on symbol/interval/chartType change
   useEffect(() => {
     if (!chartContainerRef.current) {
       console.log('No chart container ref');
       return;
     }
 
+    // --- CLEANUP: Remove old chart instance and all refs/state ---
+    if (chartRef.current) {
+      try {
+        chartRef.current.remove();
+      } catch (e) {
+        console.debug('Error removing chart:', e);
+      }
+      chartRef.current = null;
+    }
+    candlestickSeriesRef.current = null;
+    indicatorSeriesRef.current.clear();
+    setSeparatePaneIndicatorData(new Map());
+    allDataRef.current = [];
+    oldestTimestampRef.current = 0;
+    if (highlightOverlayRef.current) {
+      highlightOverlayRef.current.style.display = 'none';
+    }
+
+    // --- CREATE NEW CHART INSTANCE ---
     console.log('Initializing chart with dimensions:', {
       width: chartContainerRef.current.clientWidth,
       height: chartContainerRef.current.clientHeight
     });
 
-    // Theme-based colors
     const isDark = theme === 'dark';
     const bgColor = isDark ? '#0C0E12' : '#FFFFFF';
     const textColor = isDark ? '#9B9B9B' : '#44475B';
@@ -838,13 +1018,9 @@ export default function TradingChart({
           const day = date.getDate().toString().padStart(2, '0');
           const month = (date.getMonth() + 1).toString().padStart(2, '0');
           const year = date.getFullYear();
-          
-          // Format based on interval
           if (interval === '1d' || interval === '5d') {
-            // Show time for intraday
             return `${day}/${month}/${year} ${hours}:${minutes}`;
           } else {
-            // Show date only for longer timeframes
             return `${day}/${month}/${year}`;
           }
         },
@@ -871,10 +1047,7 @@ export default function TradingChart({
     switch(chartType) {
       case 'line':
       case 'line-break':
-        series = chart.addLineSeries({
-          color: '#00D09C',
-          lineWidth: 2,
-        });
+        series = chart.addLineSeries({ color: '#00D09C', lineWidth: 2 });
         break;
       case 'area':
         series = chart.addAreaSeries({
@@ -908,19 +1081,13 @@ export default function TradingChart({
       case 'columns':
         series = chart.addHistogramSeries({
           base: 0,
-          priceFormat: {
-            type: 'price',
-            precision: 2,
-            minMove: 0.01,
-          },
+          priceFormat: { type: 'price', precision: 2, minMove: 0.01 },
         });
         break;
       case 'histogram':
         series = chart.addHistogramSeries({
           color: '#00D09C',
-          priceFormat: {
-            type: 'volume',
-          },
+          priceFormat: { type: 'volume' },
         });
         break;
       case 'hollow-candlestick':
@@ -946,20 +1113,12 @@ export default function TradingChart({
         });
         break;
       case 'kagi':
-        series = chart.addLineSeries({
-          color: '#00D09C',
-          lineWidth: 3,
-          lineStyle: 0,
-        });
+        series = chart.addLineSeries({ color: '#00D09C', lineWidth: 3, lineStyle: 0 });
         break;
       case 'point-figure':
         series = chart.addHistogramSeries({
           base: 0,
-          priceFormat: {
-            type: 'price',
-            precision: 2,
-            minMove: 0.01,
-          },
+          priceFormat: { type: 'price', precision: 2, minMove: 0.01 },
         });
         break;
       case 'candlestick':
@@ -982,7 +1141,6 @@ export default function TradingChart({
     chart.timeScale().subscribeVisibleLogicalRangeChange(() => {
       const logicalRange = chart.timeScale().getVisibleLogicalRange();
       if (logicalRange !== null) {
-        // If user scrolled to the left edge (viewing oldest data), load more historical data
         if (logicalRange.from < 5) {
           console.log('👈 User scrolled to left edge (from:', logicalRange.from, ') - triggering data load...');
           loadMoreHistoricalData();
@@ -996,14 +1154,10 @@ export default function TradingChart({
         if (param.time && param.seriesData.size > 0 && onCrosshairMove) {
           const series = candlestickSeriesRef.current;
           if (!series) return;
-
           const data = param.seriesData.get(series);
           if (data) {
-            // Extract OHLC values based on data type
-            let ohlcData: { open: number; high: number; low: number; close: number; time: number } | null = null;
-
+            let ohlcData = null;
             if ('open' in data && 'high' in data && 'low' in data && 'close' in data) {
-              // Candlestick/Bar data
               ohlcData = {
                 open: data.open,
                 high: data.high,
@@ -1012,7 +1166,6 @@ export default function TradingChart({
                 time: param.time as number,
               };
             } else if ('value' in data) {
-              // Line/Area data - use value for all OHLC
               ohlcData = {
                 open: data.value,
                 high: data.value,
@@ -1021,14 +1174,12 @@ export default function TradingChart({
                 time: param.time as number,
               };
             }
-
             if (ohlcData) {
               onCrosshairMove(ohlcData);
             }
           }
         }
       } catch (e) {
-        // Silently catch disposed chart errors during crosshair move
         console.debug('Crosshair move error (chart may be disposed):', e);
       }
     });
@@ -1042,7 +1193,6 @@ export default function TradingChart({
         });
       }
     };
-
     window.addEventListener('resize', handleResize);
 
     // Fetch initial data
@@ -1050,30 +1200,24 @@ export default function TradingChart({
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      
-      // Clear refs before removing chart
-      candlestickSeriesRef.current = null;
-      
-      // Remove chart safely
-      try {
-        chart.remove();
-      } catch (e) {
-        console.debug('Error removing chart:', e);
+      if (chartRef.current) {
+        try {
+          chartRef.current.remove();
+        } catch (e) {
+          console.debug('Error removing chart:', e);
+        }
+        chartRef.current = null;
       }
-      
-      chartRef.current = null;
-    };
-  }, []);
-
-  // Fetch data when symbol or interval changes
-  useEffect(() => {
-    if (chartRef.current && candlestickSeriesRef.current) {
-      // Reset data cache when symbol or interval changes
+      candlestickSeriesRef.current = null;
+      indicatorSeriesRef.current.clear();
+      setSeparatePaneIndicatorData(new Map());
       allDataRef.current = [];
       oldestTimestampRef.current = 0;
-      fetchChartData();
-    }
-  }, [symbol, interval]);
+      if (highlightOverlayRef.current) {
+        highlightOverlayRef.current.style.display = 'none';
+      }
+    };
+  }, [symbol, interval, chartType]);
 
   // Handle refresh trigger - fetch new data without resetting zoom/pan
   useEffect(() => {
@@ -1154,9 +1298,22 @@ export default function TradingChart({
     try {
       const now = Math.floor(Date.now() / 1000);
       const { resolution } = getTimeRange(interval);
-      const apiKey = process.env.NEXT_PUBLIC_FINNHUB_API_KEY;
       
-      let finnhubSymbol = symbol.replace('.NS', '');
+      // For NSE stocks, use Yahoo Finance
+      if (symbol.endsWith('.NS')) {
+        console.log('📡 Fetching latest NSE data from Yahoo Finance');
+        try {
+          await fetchYahooFinanceData(fromTimestamp, now, true, true); // appendData=true, isRefresh=true
+        } catch (error) {
+          // Silently handle refresh errors - existing chart stays unchanged
+          console.log('ℹ️ Refresh skipped - keeping existing chart data');
+        }
+        return;
+      }
+      
+      // For other stocks, use Finnhub
+      const apiKey = process.env.NEXT_PUBLIC_FINNHUB_API_KEY;
+      let finnhubSymbol = symbol;
       
       const url = `https://finnhub.io/api/v1/stock/candle?symbol=${finnhubSymbol}&resolution=${resolution}&from=${fromTimestamp}&to=${now}&token=${apiKey}`;
       console.log('📡 Fetching latest data from:', new Date(fromTimestamp * 1000).toISOString(), 'to now');
