@@ -506,48 +506,63 @@ export default function TradingChart({
 
   // Convert interval to Finnhub resolution and timestamp range
   const getTimeRange = (interval: string) => {
-    // Use a consistent "now" timestamp to ensure same data on repeated fetches
-    // For intraday intervals, align to current date's market hours
+    // Round timestamps based on the time period to improve cache hit rate
+    // For intraday: round to 5 min, for daily: round to 1 hour, for long-term: round to 1 day
     const now = Math.floor(Date.now() / 1000);
     let from = now;
     let resolution = '1';
+    let roundedNow = now;
 
     switch(interval) {
       case '1d':
-        // For 1 day view, show current trading day (last 24 hours)
-        from = now - (24 * 60 * 60);
+        // For 1 day view, round to nearest 5 minutes
+        roundedNow = Math.floor(now / 300) * 300;
+        from = roundedNow - (24 * 60 * 60);
         resolution = '1'; // 1 minute
         break;
       case '5d':
-        from = now - (5 * 24 * 60 * 60);
+        // For 5 days, round to nearest 15 minutes
+        roundedNow = Math.floor(now / 900) * 900;
+        from = roundedNow - (5 * 24 * 60 * 60);
         resolution = '5'; // 5 minutes
         break;
       case '1m':
-        from = now - (30 * 24 * 60 * 60);
+        // For 1 month, round to nearest hour
+        roundedNow = Math.floor(now / 3600) * 3600;
+        from = roundedNow - (30 * 24 * 60 * 60);
         resolution = '15'; // 15 minutes
         break;
       case '3m':
-        from = now - (90 * 24 * 60 * 60);
+        // For 3 months, round to nearest day
+        roundedNow = Math.floor(now / 86400) * 86400;
+        from = roundedNow - (90 * 24 * 60 * 60);
         resolution = '60'; // 1 hour
         break;
       case '1y':
-        from = now - (365 * 24 * 60 * 60);
+        // For 1 year, round to nearest day
+        roundedNow = Math.floor(now / 86400) * 86400;
+        from = roundedNow - (365 * 24 * 60 * 60);
         resolution = 'D'; // Daily
         break;
       case '5y':
-        from = now - (5 * 365 * 24 * 60 * 60);
+        // For 5 years, round to nearest day
+        roundedNow = Math.floor(now / 86400) * 86400;
+        from = roundedNow - (5 * 365 * 24 * 60 * 60);
         resolution = 'W'; // Weekly
         break;
       case '10y':
-        from = now - (10 * 365 * 24 * 60 * 60);
+        // For 10 years, round to nearest day
+        roundedNow = Math.floor(now / 86400) * 86400;
+        from = roundedNow - (10 * 365 * 24 * 60 * 60);
         resolution = 'M'; // Monthly
         break;
       default:
-        from = now - (24 * 60 * 60);
+        roundedNow = Math.floor(now / 300) * 300;
+        from = roundedNow - (24 * 60 * 60);
         resolution = '1';
     }
 
-    return { from, to: now, resolution };
+    return { from, to: roundedNow, resolution };
   };
 
   // Fetch data from Yahoo Finance (for NSE stocks that Finnhub doesn't support)
@@ -652,21 +667,10 @@ export default function TradingChart({
         
         // For non-refresh failures, log as error
         console.error('❌ No valid data from Yahoo Finance for:', symbol, '- Response:', data);
+        console.error('❌ API failed to return valid data. Please try again later or check your network connection.');
         
-        // For initial load, always generate sample data so user sees something
-        // For append operations (loading more historical data), also generate sample data
-        if (!appendData) {
-          console.warn('⚠️ Falling back to sample data for initial load');
-          generateSampleData(fromTimestamp, appendData);
-        } else if (allDataRef.current.length === 0) {
-          // If append but no existing data, generate sample data
-          console.warn('⚠️ Falling back to sample data (no existing data)');
-          generateSampleData(fromTimestamp, appendData);
-        } else {
-          // For load-more operations, generate sample historical data
-          console.warn('⚠️ Generating sample historical data for append operation');
-          generateSampleData(fromTimestamp, appendData);
-        }
+        // Don't generate sample data - just keep loading state off and show error
+        if (!appendData) setIsLoading(false);
       }
     } catch (error) {
       // For refresh operations, just log info and keep existing data unchanged
@@ -710,9 +714,12 @@ export default function TradingChart({
       // Use provided timestamp or default
       const startTime = fromTimestamp || from;
       
-      // For NSE stocks, use Yahoo Finance API instead of Finnhub
-      if (symbol.endsWith('.NS')) {
-        console.log('🔍 Fetching NSE data from Yahoo Finance for:', symbol);
+      // For Indian market symbols (NSE stocks and indices), use Yahoo Finance API instead of Finnhub
+      // Covers: .NS stocks, ^NSEI, ^NSEBANK, ^CNXFIN, ^CNXIT, ^NSEMDCP50, etc.
+      const isIndianSymbol = symbol.endsWith('.NS') || symbol.startsWith('^NSE') || symbol.startsWith('^CNX');
+      
+      if (isIndianSymbol) {
+        console.log('🔍 Fetching Indian market data from Yahoo Finance for:', symbol);
         await fetchYahooFinanceData(startTime, to, appendData);
         return;
       }

@@ -1,4 +1,10 @@
+export const runtime = 'nodejs';
+
 import { NextRequest, NextResponse } from 'next/server';
+
+// In-memory cache for stock data
+const cache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,6 +19,15 @@ export async function GET(request: NextRequest) {
         { error: 'Missing required parameters' },
         { status: 400 }
       );
+    }
+
+    // Check in-memory cache
+    const cacheKey = `${symbol}:${period1}:${period2}:${interval}`;
+    const cached = cache.get(cacheKey);
+    
+    if (cached && (Date.now() - cached.timestamp) < CACHE_TTL) {
+      console.log('✅ Serving from in-memory cache:', cacheKey);
+      return NextResponse.json(cached.data);
     }
 
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?period1=${period1}&period2=${period2}&interval=${interval}`;
@@ -37,17 +52,22 @@ export async function GET(request: NextRequest) {
       console.error('Error response:', errorText);
       return NextResponse.json(
         { chart: { error: 'Yahoo Finance API error', result: null } },
-        { status: 200 } // Return 200 so client can handle the error message
+        { status: 200 }
       );
     }
 
     const data = await response.json();
     
+    // Cache the successful response
+    if (data?.chart?.result) {
+      cache.set(cacheKey, { data, timestamp: Date.now() });
+      console.log('💾 Cached stock data for:', cacheKey);
+    }
+    
     // Log if data structure is unexpected
     if (!data?.chart?.result) {
       console.error('Unexpected Yahoo Finance response structure:', data);
     }
-    
     return NextResponse.json(data);
   } catch (error) {
     console.error('Error fetching Yahoo Finance data:', error);
