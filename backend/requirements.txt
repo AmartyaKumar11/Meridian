@@ -39,6 +39,9 @@ fastapi>=0.104.0
 uvicorn[standard]>=0.24.0
 pydantic>=2.0.0
 
+# Redis Cache
+redis>=5.0.0
+
 # Optional: For async requests (if scaling up)
 # aiohttp>=3.8.0
 

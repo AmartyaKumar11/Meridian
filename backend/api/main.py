@@ -30,6 +30,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from ingestion.elastic_client import get_es_client
+from cache.redis_client import get_redis_client
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -49,12 +50,14 @@ app.add_middleware(
 
 # Initialize Elasticsearch client
 es = None
+cache = None
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize Elasticsearch connection on startup."""
-    global es
+    """Initialize Elasticsearch and Redis connections on startup."""
+    global es, cache
     es = get_es_client()
+    cache = get_redis_client()
 
 
 # Pydantic models
@@ -376,6 +379,199 @@ async def get_impact_events(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# Get news events for chart markers
+@app.get("/api/chart-events/{company}")
+async def get_chart_events(
+    company: str,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    min_impact_score: float = Query(0.0, ge=0.0)
+):
+    """
+    Get news events optimized for chart markers with Redis caching.
+    
+    On first request: Fetches from Elasticsearch and caches in Redis
+    On subsequent requests: Returns from Redis cache (fast!)
+    
+    Args:
+        company: Company name (e.g., "Reliance Industries")
+        start_date: Start date filter (ISO format or Unix timestamp)
+        end_date: End date filter (ISO format or Unix timestamp)
+        min_impact_score: Minimum impact score (default: 0.0)
+    """
+    try:
+        # Try to get from cache first
+        cached_events = cache.get_news_events(company) if cache.enabled else None
+        
+        if cached_events is not None:
+            # Filter cached events by date range and impact score
+            filtered_events = cached_events
+            
+            if start_date or end_date or min_impact_score > 0:
+                filtered_events = []
+                for event in cached_events:
+                    # Check impact score
+                    if min_impact_score > 0 and event.get("impact_score", 0) < min_impact_score:
+                        continue
+                    
+                    # Check date range (if needed, implement date filtering here)
+                    filtered_events.append(event)
+            
+            return {
+                "company": company,
+                "total_events": len(filtered_events),
+                "events": filtered_events,
+                "cached": True
+            }
+        
+        # Cache miss - fetch from Elasticsearch
+        must_conditions = [{"match": {"company": company}}]
+        
+        filter_conditions = []
+        if min_impact_score > 0:
+            filter_conditions.append({"range": {"impact_score": {"gte": min_impact_score}}})
+        
+        if start_date or end_date:
+            date_range = {}
+            if start_date:
+                date_range["gte"] = start_date
+            if end_date:
+                date_range["lte"] = end_date
+            must_conditions.append({"range": {"seendate": date_range}})
+        
+        query = {
+            "size": 1000,  # Limit to 1000 events for performance
+            "_source": [
+                "title", "seendate", "sentiment_label", "sentiment_score",
+                "impact_score", "price_change_pct", "url", "domain"
+            ],
+            "query": {
+                "bool": {
+                    "must": must_conditions,
+                    "filter": filter_conditions
+                }
+            },
+            "sort": [
+                {"seendate": {"order": "asc"}}  # Chronological order
+            ]
+        }
+        
+        result = es.search(index="stock_news", body=query)
+        
+        events = []
+        for hit in result['hits']['hits']:
+            doc = hit['_source']
+            # Only include events with valid dates
+            if doc.get("seendate"):
+                events.append({
+                    "timestamp": doc.get("seendate"),
+                    "title": doc.get("title", "")[:200],  # Truncate for performance
+                    "sentiment_label": doc.get("sentiment_label", "neutral"),
+                    "sentiment_score": doc.get("sentiment_score", 0.5),
+                    "impact_score": doc.get("impact_score", 0.0),
+                    "price_change_pct": doc.get("price_change_pct"),
+                    "url": doc.get("url"),
+                    "domain": doc.get("domain")
+                })
+        
+        # Cache the events for 1 hour (3600 seconds)
+        if cache.enabled and events:
+            cache.set_news_events(company, events, ttl=3600)
+        
+        return {
+            "company": company,
+            "total_events": len(events),
+            "events": events,
+            "cached": False
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Get specific event details (for hover tooltip)
+@app.get("/api/event-detail/{company}/{timestamp}")
+async def get_event_detail(company: str, timestamp: str):
+    """
+    Get detailed information for a specific news event.
+    Used when hovering over a chart marker.
+    
+    Args:
+        company: Company name
+        timestamp: Event timestamp (ISO format)
+    """
+    try:
+        # Try cache first
+        cached_detail = cache.get_event_detail(company, timestamp) if cache.enabled else None
+        
+        if cached_detail:
+            return {
+                "event": cached_detail,
+                "cached": True
+            }
+        
+        # Cache miss - fetch from Elasticsearch
+        query = {
+            "size": 1,
+            "query": {
+                "bool": {
+                    "must": [
+                        {"match": {"company": company}},
+                        {"term": {"seendate": timestamp}}
+                    ]
+                }
+            }
+        }
+        
+        result = es.search(index="stock_news", body=query)
+        
+        if result['hits']['total']['value'] > 0:
+            doc = result['hits']['hits'][0]['_source']
+            event_detail = {
+                "timestamp": doc.get("seendate"),
+                "title": doc.get("title"),
+                "sentiment_label": doc.get("sentiment_label"),
+                "sentiment_score": doc.get("sentiment_score"),
+                "impact_score": doc.get("impact_score"),
+                "price_change_pct": doc.get("price_change_pct"),
+                "price_before": doc.get("price_before"),
+                "price_after": doc.get("price_after"),
+                "url": doc.get("url"),
+                "domain": doc.get("domain"),
+                "related_entities": doc.get("related_entities", [])
+            }
+            
+            return {
+                "event": event_detail,
+                "cached": False
+            }
+        else:
+            raise HTTPException(status_code=404, detail="Event not found")
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Cache management endpoint
+@app.post("/api/cache/invalidate/{company}")
+async def invalidate_cache(company: str):
+    """Invalidate cached events for a company."""
+    if cache.enabled:
+        success = cache.invalidate_company(company)
+        return {"success": success, "company": company}
+    else:
+        return {"success": False, "message": "Cache not enabled"}
+
+
+@app.get("/api/cache/stats")
+async def get_cache_stats():
+    """Get cache statistics."""
+    if cache.enabled:
+        return cache.get_cache_stats()
+    else:
+        return {"enabled": False}
 
 
 # Get overall sentiment distribution

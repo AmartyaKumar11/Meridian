@@ -13,6 +13,7 @@ Expected Output:
 import logging
 import hashlib
 from typing import List, Dict
+from datetime import datetime
 
 import pandas as pd
 
@@ -53,9 +54,9 @@ def prepare_doc(row: pd.Series) -> Dict:
         "fetched_at": to_iso(row.get("fetched_at")) or datetime.now().isoformat(),
         "sentiment_label": str(row.get("sentiment_label", "neutral")),
         "sentiment_score": float(row.get("sentiment_score", 0.5)) if pd.notna(row.get("sentiment_score")) else 0.5,
-        "summary": str(row.get("summary", "")),
-        "keywords": row.get("keywords", []),
-        "related_entities": row.get("related_entities", []),
+        "summary": str(row.get("summary", "")) if pd.notna(row.get("summary")) else "",
+        "keywords": list(row.get("keywords", [])) if pd.notna(row.get("keywords")) and isinstance(row.get("keywords"), list) and len(row.get("keywords", [])) > 0 else [],
+        "related_entities": list(row.get("related_entities", [])) if pd.notna(row.get("related_entities")) and isinstance(row.get("related_entities"), list) and len(row.get("related_entities", [])) > 0 else [],
         "price_before": float(row.get("price_before")) if pd.notna(row.get("price_before")) else None,
         "price_after": float(row.get("price_after")) if pd.notna(row.get("price_after")) else None,
         "price_change_pct": float(row.get("price_change_pct")) if pd.notna(row.get("price_change_pct")) else None,
