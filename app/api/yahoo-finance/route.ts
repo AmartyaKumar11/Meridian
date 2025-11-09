@@ -30,14 +30,30 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(cached.data);
     }
 
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?period1=${period1}&period2=${period2}&interval=${interval}`;
+    // For intraday intervals (5m, 15m, etc.), use range parameter for better results
+    const intradayIntervals = ['1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h'];
+    const useRangeParam = intradayIntervals.includes(interval);
     
-    console.log('Proxying Yahoo Finance request:', {
-      symbol,
-      interval,
-      from: new Date(parseInt(period1) * 1000).toISOString(),
-      to: new Date(parseInt(period2) * 1000).toISOString(),
-    });
+    let url: string;
+    if (useRangeParam) {
+      // Use range parameter for intraday data
+      const range = searchParams.get('range') || '1d';
+      url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&range=${range}`;
+      console.log('Proxying Yahoo Finance request (range mode):', {
+        symbol,
+        interval,
+        range,
+      });
+    } else {
+      // Use period1/period2 for daily/weekly data
+      url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?period1=${period1}&period2=${period2}&interval=${interval}`;
+      console.log('Proxying Yahoo Finance request (period mode):', {
+        symbol,
+        interval,
+        from: new Date(parseInt(period1) * 1000).toISOString(),
+        to: new Date(parseInt(period2) * 1000).toISOString(),
+      });
+    }
 
     const response = await fetch(url, {
       headers: {

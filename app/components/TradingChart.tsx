@@ -568,38 +568,96 @@ export default function TradingChart({
   // Fetch data from Yahoo Finance (for NSE stocks that Finnhub doesn't support)
   const fetchYahooFinanceData = async (fromTimestamp: number, toTimestamp: number, appendData: boolean = false, isRefresh: boolean = false) => {
     try {
-      const period1 = fromTimestamp;
-      const period2 = toTimestamp;
-      
       // Map interval to Yahoo Finance format
       let yahooInterval = '1d';
-      switch(interval) {
-        case '1d':
-          yahooInterval = '5m'; // Use 5min candles for 1 day to get more consistent data
-          break;
-        case '5d':
-          yahooInterval = '15m'; // Use 15min candles for 5 days
-          break;
-        case '1m':
-          yahooInterval = '1h';
-          break;
-        case '3m':
-        case '1y':
-          yahooInterval = '1d';
-          break;
-        case '5y':
-        case '10y':
-          yahooInterval = '1wk';
-          break;
-        default:
-          yahooInterval = '1d';
+      let adjustedFromTimestamp = fromTimestamp;
+      let adjustedToTimestamp = toTimestamp;
+      let useRangeParam = false;
+      let rangeValue = '1d';
+      
+      // For Indian stocks and indices, check if we can use intraday intervals
+      const isIndianStockOrIndex = symbol.endsWith('.NS') || symbol.startsWith('^NSE') || symbol.startsWith('^CNX');
+      if (isIndianStockOrIndex) {
+        switch(interval) {
+          case '1d':
+            // For 1 day view, use 5-minute candles with range parameter
+            yahooInterval = '5m';
+            useRangeParam = true;
+            rangeValue = '1d';
+            break;
+          case '5d':
+            // For 5 day view, use 15-minute candles
+            yahooInterval = '15m';
+            useRangeParam = true;
+            rangeValue = '5d';
+            break;
+          case '1m':
+            yahooInterval = '1d';
+            useRangeParam = true;
+            rangeValue = '1mo';
+            break;
+          case '3m':
+            yahooInterval = '1d';
+            useRangeParam = true;
+            rangeValue = '3mo';
+            break;
+          case '1y':
+            yahooInterval = '1d';
+            useRangeParam = true;
+            rangeValue = '1y';
+            break;
+          case '5y':
+            yahooInterval = '1wk';
+            useRangeParam = true;
+            rangeValue = '5y';
+            break;
+          case '10y':
+            yahooInterval = '1wk';
+            useRangeParam = true;
+            rangeValue = '10y';
+            break;
+          default:
+            yahooInterval = '1d';
+        }
+      } else {
+        switch(interval) {
+          case '1d':
+            yahooInterval = '5m';
+            break;
+          case '5d':
+            yahooInterval = '15m';
+            break;
+          case '1m':
+            yahooInterval = '1h';
+            break;
+          case '3m':
+          case '1y':
+            yahooInterval = '1d';
+            break;
+          case '5y':
+          case '10y':
+            yahooInterval = '1wk';
+            break;
+          default:
+            yahooInterval = '1d';
+        }
       }
       
+      const period1 = adjustedFromTimestamp;
+      const period2 = adjustedToTimestamp;
+      
       // Use our Next.js API route to proxy the request (avoids CORS)
-      const url = `/api/yahoo-finance?symbol=${encodeURIComponent(symbol)}&period1=${period1}&period2=${period2}&interval=${yahooInterval}`;
+      let url: string;
+      if (useRangeParam) {
+        url = `/api/yahoo-finance?symbol=${encodeURIComponent(symbol)}&interval=${yahooInterval}&range=${rangeValue}&period1=${period1}&period2=${period2}`;
+      } else {
+        url = `/api/yahoo-finance?symbol=${encodeURIComponent(symbol)}&period1=${period1}&period2=${period2}&interval=${yahooInterval}`;
+      }
       console.log('🔍 Fetching from Yahoo Finance via proxy:', {
         symbol: symbol,
         interval: yahooInterval,
+        useRangeParam,
+        range: useRangeParam ? rangeValue : undefined,
         from: new Date(period1 * 1000).toLocaleString(),
         to: new Date(period2 * 1000).toLocaleString(),
         period1,
