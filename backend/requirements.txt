@@ -1,0 +1,49 @@
+# News Analytics Pipeline - Python Dependencies
+
+# Core data processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# API requests
+requests>=2.31.0
+
+# Elasticsearch
+elasticsearch>=8.0.0
+
+# NLP - Sentiment Analysis
+transformers>=4.30.0
+torch>=2.0.0
+sentencepiece>=0.1.99
+
+# NLP - Named Entity Recognition
+spacy>=3.5.0
+# After installing requirements, run: python -m spacy download en_core_web_sm
+
+# Alternative sentiment (fallback)
+textblob>=0.17.1
+
+# Stock data
+yfinance>=0.2.28
+
+# Environment configuration
+python-dotenv>=1.0.0
+
+# Progress tracking
+tqdm>=4.65.0
+
+# Utilities
+python-dateutil>=2.8.2
+
+# FastAPI Backend
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.0.0
+
+# Optional: For async requests (if scaling up)
+# aiohttp>=3.8.0
+
+# Optional: For better logging
+# loguru>=0.7.0
+
+# Optional: For data validation
+# pydantic>=2.0.0
