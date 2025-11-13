@@ -35,10 +35,12 @@ export default function TradingChart({
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<any>(null);
   const candlestickSeriesRef = useRef<any>(null);
+  const markerSeriesRef = useRef<any>(null); // For news event markers
   const indicatorSeriesRef = useRef<Map<string, any>>(new Map());
   const indicatorChartsRef = useRef<Map<string, any>>(new Map()); // Separate charts for indicators
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [newsEvents, setNewsEvents] = useState<any[]>([]);
   const [separatePaneIndicatorData, setSeparatePaneIndicatorData] = useState<Map<string, any[]>>(new Map());
   const allDataRef = useRef<any[]>([]);
   const oldestTimestampRef = useRef<number>(0);
@@ -712,6 +714,11 @@ export default function TradingChart({
             console.log('📊 Setting', formattedData.length, 'data points to chart from Yahoo Finance');
             candlestickSeriesRef.current.setData(formattedData);
             updateIndicators();
+            
+            // Fetch and add news events after initial data load (not for append operations)
+            if (!appendData) {
+              fetchNewsEvents();
+            }
           } catch (e) {
             console.error('Error setting Yahoo Finance chart data:', e);
           }
@@ -856,6 +863,11 @@ export default function TradingChart({
             // Update indicators with new data
             console.log('🔄 Updating indicators after data load (total data points:', allDataRef.current.length, ')');
             updateIndicators();
+            
+            // Fetch and add news events after initial data load (not for append operations)
+            if (!appendData) {
+              fetchNewsEvents();
+            }
           } catch (e) {
             console.error('Error setting chart data:', e);
           }
@@ -947,6 +959,91 @@ export default function TradingChart({
       } catch (e) {
         console.error('Error setting sample data:', e);
       }
+    }
+  };
+
+  // Fetch news events for the current symbol
+  const fetchNewsEvents = async () => {
+    try {
+      // Extract company name from symbol (remove .NS suffix for Indian stocks)
+      const companySymbol = symbol.replace('.NS', '').replace('^', '');
+      
+      console.log('📰 Fetching news events for:', companySymbol);
+      
+      // Use environment variable or default to localhost:8000
+      const apiUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/api/chart-events/${encodeURIComponent(companySymbol)}`, {
+        signal: AbortSignal.timeout(5000) // 5 second timeout
+      });
+      
+      if (!response.ok) {
+        console.warn('Failed to fetch news events:', response.status);
+        return;
+      }
+      
+      const data = await response.json();
+      
+      if (data.events && data.events.length > 0) {
+        console.log('✅ Fetched', data.events.length, 'news events for', companySymbol);
+        setNewsEvents(data.events);
+        addNewsMarkersToChart(data.events);
+      } else {
+        console.log('ℹ️ No news events found for', companySymbol);
+        setNewsEvents([]);
+      }
+    } catch (error) {
+      // Silently fail if backend is not available - news markers are optional
+      if (error.name === 'AbortError') {
+        console.debug('News events fetch timeout - backend may not be running');
+      } else {
+        console.debug('News events not available - backend may not be running');
+      }
+      setNewsEvents([]);
+    }
+  };
+
+  // Add news event markers to the chart
+  const addNewsMarkersToChart = (events: any[]) => {
+    if (!candlestickSeriesRef.current || !events || events.length === 0) {
+      return;
+    }
+
+    try {
+      // Convert events to marker format for lightweight-charts
+      const markers = events.map((event: any) => {
+        // Parse timestamp (could be ISO string or Unix timestamp)
+        let time: number;
+        if (typeof event.timestamp === 'string') {
+          time = Math.floor(new Date(event.timestamp).getTime() / 1000);
+        } else {
+          time = event.timestamp;
+        }
+
+        // Determine marker color based on sentiment
+        let color = '#9B9B9B'; // neutral gray
+        if (event.sentiment_label === 'positive') {
+          color = '#00D09C'; // green
+        } else if (event.sentiment_label === 'negative') {
+          color = '#FF4976'; // red
+        }
+
+        // Determine marker position (above or below the bar)
+        const position = event.sentiment_label === 'positive' ? 'aboveBar' : 'belowBar';
+
+        return {
+          time: time,
+          position: position,
+          color: color,
+          shape: 'circle',
+          text: '📰',
+          size: 1,
+        };
+      });
+
+      console.log('📍 Adding', markers.length, 'news markers to chart');
+      candlestickSeriesRef.current.setMarkers(markers);
+    } catch (error) {
+      console.error('Error adding news markers to chart:', error);
     }
   };
 
