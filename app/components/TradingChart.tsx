@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createChart, ColorType } from 'lightweight-charts';
 import { useTheme } from '../context/ThemeContext';
 import IndicatorPane from './IndicatorPane';
+import { getCompanyNameFromSymbol } from '../utils/stockToCompanyMapping';
 
 interface TradingChartProps {
   symbol: string;
@@ -41,6 +42,8 @@ export default function TradingChart({
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [newsEvents, setNewsEvents] = useState<any[]>([]);
+  const [hoveredEvent, setHoveredEvent] = useState<any | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null);
   const [separatePaneIndicatorData, setSeparatePaneIndicatorData] = useState<Map<string, any[]>>(new Map());
   const allDataRef = useRef<any[]>([]);
   const oldestTimestampRef = useRef<number>(0);
@@ -965,14 +968,21 @@ export default function TradingChart({
   // Fetch news events for the current symbol
   const fetchNewsEvents = async () => {
     try {
-      // Extract company name from symbol (remove .NS suffix for Indian stocks)
-      const companySymbol = symbol.replace('.NS', '').replace('^', '');
+      // Get company name from symbol mapping
+      const companyName = getCompanyNameFromSymbol(symbol);
       
-      console.log('📰 Fetching news events for:', companySymbol);
+      if (!companyName) {
+        console.debug('No company mapping found for symbol:', symbol);
+        setNewsEvents([]);
+        return;
+      }
+      
+      console.log('📰 Fetching news events for:', symbol, '->', companyName);
       
       // Use environment variable or default to localhost:8000
       const apiUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiUrl}/api/chart-events/${encodeURIComponent(companySymbol)}`, {
+      // Fetch all events for now (impact scores will be calculated later)
+      const response = await fetch(`${apiUrl}/api/chart-events/${encodeURIComponent(companyName)}`, {
         signal: AbortSignal.timeout(5000) // 5 second timeout
       });
       
@@ -984,11 +994,11 @@ export default function TradingChart({
       const data = await response.json();
       
       if (data.events && data.events.length > 0) {
-        console.log('✅ Fetched', data.events.length, 'news events for', companySymbol);
+        console.log('✅ Fetched', data.events.length, 'news events for', companyName);
         setNewsEvents(data.events);
         addNewsMarkersToChart(data.events);
       } else {
-        console.log('ℹ️ No news events found for', companySymbol);
+        console.log('ℹ️ No news events found for', companyName);
         setNewsEvents([]);
       }
     } catch (error) {
@@ -1313,6 +1323,32 @@ export default function TradingChart({
     // Subscribe to crosshair move events
     chart.subscribeCrosshairMove((param) => {
       try {
+        // Check if hovering over a news marker
+        if (param.time && newsEvents.length > 0) {
+          const hoveredTime = param.time as number;
+          const hoveredNewsEvent = newsEvents.find((event) => {
+            let eventTime: number;
+            if (typeof event.timestamp === 'string') {
+              eventTime = Math.floor(new Date(event.timestamp).getTime() / 1000);
+            } else {
+              eventTime = event.timestamp;
+            }
+            // Check if within ~1 day of the event (adjust tolerance as needed)
+            return Math.abs(eventTime - hoveredTime) < 86400; // 1 day tolerance
+          });
+
+          if (hoveredNewsEvent && param.point) {
+            setHoveredEvent(hoveredNewsEvent);
+            setTooltipPosition({ x: param.point.x, y: param.point.y });
+          } else {
+            setHoveredEvent(null);
+            setTooltipPosition(null);
+          }
+        } else {
+          setHoveredEvent(null);
+          setTooltipPosition(null);
+        }
+
         if (param.time && param.seriesData.size > 0 && onCrosshairMove) {
           const series = candlestickSeriesRef.current;
           if (!series) return;
@@ -2057,6 +2093,89 @@ export default function TradingChart({
           }}
         />
         <div ref={chartContainerRef} className="w-full h-full cursor-crosshair" />
+        
+        {/* News Event Tooltip */}
+        {hoveredEvent && tooltipPosition && (
+          <div
+            className="absolute z-30 pointer-events-none"
+            style={{
+              left: `${tooltipPosition.x + 15}px`,
+              top: `${tooltipPosition.y - 10}px`,
+              maxWidth: '320px',
+            }}
+          >
+            <div className="bg-white dark:bg-[#1A1D24] border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl p-3 text-xs">
+              {/* Sentiment Badge */}
+              <div className="flex items-center gap-2 mb-2">
+                <span
+                  className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+                    hoveredEvent.sentiment_label === 'positive'
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                      : hoveredEvent.sentiment_label === 'negative'
+                      ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400'
+                  }`}
+                >
+                  {hoveredEvent.sentiment_label?.toUpperCase() || 'NEUTRAL'}
+                </span>
+                {hoveredEvent.impact_score && (
+                  <span className="text-gray-500 dark:text-gray-400 text-[10px]">
+                    Impact: {(hoveredEvent.impact_score * 100).toFixed(1)}%
+                  </span>
+                )}
+              </div>
+
+              {/* Title */}
+              <div className="font-semibold text-gray-900 dark:text-gray-100 mb-2 leading-tight">
+                {hoveredEvent.title}
+              </div>
+
+              {/* Metadata */}
+              <div className="flex items-center gap-3 text-[10px] text-gray-500 dark:text-gray-400 mb-2">
+                <span>
+                  {new Date(
+                    typeof hoveredEvent.timestamp === 'string'
+                      ? hoveredEvent.timestamp
+                      : hoveredEvent.timestamp * 1000
+                  ).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                </span>
+                {hoveredEvent.domain && (
+                  <span className="truncate max-w-[120px]">{hoveredEvent.domain}</span>
+                )}
+              </div>
+
+              {/* Price Change */}
+              {hoveredEvent.price_change_pct !== null && hoveredEvent.price_change_pct !== undefined && (
+                <div className="flex items-center gap-1 text-[10px]">
+                  <span className="text-gray-600 dark:text-gray-400">Price Impact:</span>
+                  <span
+                    className={`font-semibold ${
+                      hoveredEvent.price_change_pct > 0
+                        ? 'text-green-600 dark:text-green-400'
+                        : hoveredEvent.price_change_pct < 0
+                        ? 'text-red-600 dark:text-red-400'
+                        : 'text-gray-600 dark:text-gray-400'
+                    }`}
+                  >
+                    {hoveredEvent.price_change_pct > 0 ? '+' : ''}
+                    {hoveredEvent.price_change_pct.toFixed(2)}%
+                  </span>
+                </div>
+              )}
+
+              {/* Link hint */}
+              {hoveredEvent.url && (
+                <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-[10px] text-gray-400 dark:text-gray-500">
+                  Click marker to open article
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Render separate indicator panes */}

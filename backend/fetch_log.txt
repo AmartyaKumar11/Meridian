@@ -1,0 +1,7 @@
+Fetching news for 50 companies
+Date range: 20201114 to 20251113
+This will take several hours...
+
+
+[1/50] Processing: Reliance Industries
+------------------------------------------------------------

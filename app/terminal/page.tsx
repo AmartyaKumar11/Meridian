@@ -28,6 +28,23 @@ export default function Terminal() {
   const [isPortfolioSidebarOpen, setIsPortfolioSidebarOpen] = useState(false);
   const [selectedInterval, setSelectedInterval] = useState("1d");
   const [selectedStock, setSelectedStock] = useState("RELIANCE.NS");
+  const [mounted, setMounted] = useState(false);
+
+  // Load selected stock from localStorage after component mounts (client-side only)
+  useEffect(() => {
+    setMounted(true);
+    const savedStock = localStorage.getItem('selectedStock');
+    if (savedStock) {
+      setSelectedStock(savedStock);
+    }
+  }, []);
+
+  // Save selected stock to localStorage whenever it changes
+  useEffect(() => {
+    if (mounted) {
+      localStorage.setItem('selectedStock', selectedStock);
+    }
+  }, [selectedStock, mounted]);
   const [selectedChartType, setSelectedChartType] = useState("candlestick");
   const [showChartTypeMenu, setShowChartTypeMenu] = useState(false);
   const [activeLeftTool, setActiveLeftTool] = useState("cursor");
