@@ -5,6 +5,7 @@ import { createChart, ColorType } from 'lightweight-charts';
 import { useTheme } from '../context/ThemeContext';
 import IndicatorPane from './IndicatorPane';
 import { getCompanyNameFromSymbol } from '../utils/stockToCompanyMapping';
+import NewsToast from './NewsToast';
 
 interface TradingChartProps {
   symbol: string;
@@ -20,11 +21,11 @@ interface TradingChartProps {
   refreshTrigger?: number;
 }
 
-export default function TradingChart({ 
-  symbol, 
-  interval, 
-  chartType, 
-  onCrosshairMove, 
+export default function TradingChart({
+  symbol,
+  interval,
+  chartType,
+  onCrosshairMove,
   activeIndicators = [],
   onChartClick,
   onChartRightClick,
@@ -45,6 +46,10 @@ export default function TradingChart({
   const [hoveredEvent, setHoveredEvent] = useState<any | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null);
   const [separatePaneIndicatorData, setSeparatePaneIndicatorData] = useState<Map<string, any[]>>(new Map());
+  const [showNewsToast, setShowNewsToast] = useState(false);
+  const [hoveredMarkerEvents, setHoveredMarkerEvents] = useState<any[]>([]);
+  const [toastPosition, setToastPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const eventsByDayRef = useRef<Map<number, any[]>>(new Map());
   const allDataRef = useRef<any[]>([]);
   const oldestTimestampRef = useRef<number>(0);
   const isLoadingMoreRef = useRef<boolean>(false);
@@ -61,7 +66,7 @@ export default function TradingChart({
 
   // Define which indicators need separate panes
   const separatePaneIndicators = [
-    'rsi', 'macd', 'stochastic', 'cci', 'momentum', 'williams', 
+    'rsi', 'macd', 'stochastic', 'cci', 'momentum', 'williams',
     'roc', 'volume', 'obv', 'cmf', 'adl', 'atr'
   ];
 
@@ -73,14 +78,14 @@ export default function TradingChart({
   // Validate and sort data to prevent assertion errors
   const validateAndSortData = (data: any[]) => {
     if (!data || data.length === 0) return [];
-    
+
     // Sort by timestamp
     const sortedData = [...data].sort((a, b) => a.time - b.time);
-    
+
     // Remove duplicates and keep the last occurrence
     const uniqueData: any[] = [];
     const seenTimes = new Set<number>();
-    
+
     for (let i = sortedData.length - 1; i >= 0; i--) {
       const item = sortedData[i];
       if (!seenTimes.has(item.time)) {
@@ -88,7 +93,7 @@ export default function TradingChart({
         uniqueData.unshift(item);
       }
     }
-    
+
     return uniqueData;
   };
 
@@ -106,9 +111,9 @@ export default function TradingChart({
     const result = [];
     const multiplier = 2 / (period + 1);
     let ema = data.slice(0, period).reduce((acc, val) => acc + val.close, 0) / period;
-    
+
     result.push({ time: data[period - 1].time, value: ema });
-    
+
     for (let i = period; i < data.length; i++) {
       ema = (data[i].close - ema) * multiplier + ema;
       result.push({ time: data[i].time, value: ema });
@@ -120,14 +125,14 @@ export default function TradingChart({
     const result = [];
     const gains = [];
     const losses = [];
-    
+
     // Calculate price changes
     for (let i = 1; i < data.length; i++) {
       const change = data[i].close - data[i - 1].close;
       gains.push(change > 0 ? change : 0);
       losses.push(change < 0 ? Math.abs(change) : 0);
     }
-    
+
     // Calculate RSI for each valid period
     for (let i = period - 1; i < gains.length; i++) {
       const avgGain = gains.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0) / period;
@@ -144,17 +149,17 @@ export default function TradingChart({
     const sma = calculateSMA(data, period);
     const upper = [];
     const lower = [];
-    
+
     for (let i = 0; i < sma.length; i++) {
       const dataSlice = data.slice(i, i + period);
       const mean = sma[i].value;
       const variance = dataSlice.reduce((acc, val) => acc + Math.pow(val.close - mean, 2), 0) / period;
       const std = Math.sqrt(variance);
-      
+
       upper.push({ time: sma[i].time, value: mean + (std * stdDev) });
       lower.push({ time: sma[i].time, value: mean - (std * stdDev) });
     }
-    
+
     return { sma, upper, lower };
   };
 
@@ -162,7 +167,7 @@ export default function TradingChart({
     const ema12 = calculateEMA(data, 12);
     const ema26 = calculateEMA(data, 26);
     const macdLine = [];
-    
+
     const startIndex = ema26.length - ema12.length;
     for (let i = 0; i < ema26.length; i++) {
       macdLine.push({
@@ -170,10 +175,10 @@ export default function TradingChart({
         value: ema12[i + startIndex].value - ema26[i].value
       });
     }
-    
+
     const signal = calculateEMA(macdLine.map(m => ({ close: m.value, time: m.time })), 9);
     const histogram = [];
-    
+
     for (let i = 0; i < signal.length; i++) {
       const macdIndex = macdLine.findIndex(m => m.time === signal[i].time);
       if (macdIndex !== -1) {
@@ -184,14 +189,14 @@ export default function TradingChart({
         });
       }
     }
-    
+
     return { macdLine, signal, histogram };
   };
 
   const calculateATR = (data: any[], period: number = 14) => {
     const result = [];
     const trueRanges = [];
-    
+
     for (let i = 1; i < data.length; i++) {
       const high = data[i].high;
       const low = data[i].low;
@@ -203,28 +208,28 @@ export default function TradingChart({
       );
       trueRanges.push(tr);
     }
-    
+
     for (let i = period - 1; i < trueRanges.length; i++) {
       const atr = trueRanges.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0) / period;
       result.push({ time: data[i + 1].time, value: atr });
     }
-    
+
     return result;
   };
 
   const calculateStochastic = (data: any[], period: number = 14) => {
     const result = [];
-    
+
     for (let i = period - 1; i < data.length; i++) {
       const slice = data.slice(i - period + 1, i + 1);
       const highestHigh = Math.max(...slice.map(d => d.high));
       const lowestLow = Math.min(...slice.map(d => d.low));
       const current = data[i].close;
-      
+
       const k = ((current - lowestLow) / (highestHigh - lowestLow)) * 100;
       result.push({ time: data[i].time, value: k });
     }
-    
+
     return result;
   };
 
@@ -232,19 +237,19 @@ export default function TradingChart({
     const result = [];
     let cumulativeTPV = 0;
     let cumulativeVolume = 0;
-    
+
     for (let i = 0; i < data.length; i++) {
       const typical = (data[i].high + data[i].low + data[i].close) / 3;
       const volume = data[i].volume || 1000000;
       cumulativeTPV += typical * volume;
       cumulativeVolume += volume;
-      
+
       result.push({
         time: data[i].time,
         value: cumulativeTPV / cumulativeVolume
       });
     }
-    
+
     return result;
   };
 
@@ -294,50 +299,50 @@ export default function TradingChart({
 
   const calculateCCI = (data: any[], period: number = 20) => {
     const result = [];
-    
+
     for (let i = period - 1; i < data.length; i++) {
       const slice = data.slice(i - period + 1, i + 1);
       const typicalPrices = slice.map(d => (d.high + d.low + d.close) / 3);
       const sma = typicalPrices.reduce((a, b) => a + b, 0) / period;
       const meanDeviation = typicalPrices.reduce((sum, tp) => sum + Math.abs(tp - sma), 0) / period;
       const cci = (typicalPrices[typicalPrices.length - 1] - sma) / (0.015 * meanDeviation);
-      
+
       result.push({ time: data[i].time, value: cci });
     }
-    
+
     return result;
   };
 
   const calculateROC = (data: any[], period: number = 12) => {
     const result = [];
-    
+
     for (let i = period; i < data.length; i++) {
       const roc = ((data[i].close - data[i - period].close) / data[i - period].close) * 100;
       result.push({ time: data[i].time, value: roc });
     }
-    
+
     return result;
   };
 
   const calculateWilliamsR = (data: any[], period: number = 14) => {
     const result = [];
-    
+
     for (let i = period - 1; i < data.length; i++) {
       const slice = data.slice(i - period + 1, i + 1);
       const highestHigh = Math.max(...slice.map(d => d.high));
       const lowestLow = Math.min(...slice.map(d => d.low));
       const williamsR = ((highestHigh - data[i].close) / (highestHigh - lowestLow)) * -100;
-      
+
       result.push({ time: data[i].time, value: williamsR });
     }
-    
+
     return result;
   };
 
   const calculateOBV = (data: any[]) => {
     const result = [];
     let obv = 0;
-    
+
     for (let i = 1; i < data.length; i++) {
       const volume = data[i].volume || 1000000;
       if (data[i].close > data[i - 1].close) {
@@ -345,13 +350,13 @@ export default function TradingChart({
       } else if (data[i].close < data[i - 1].close) {
         obv -= volume;
       }
-      result.push({ 
-        time: data[i].time, 
+      result.push({
+        time: data[i].time,
         value: obv,
         color: obv >= 0 ? '#4CAF50' : '#F44336'
       });
     }
-    
+
     return result;
   };
 
@@ -364,7 +369,7 @@ export default function TradingChart({
   };
 
   const calculateIndicatorData = (data: any[], indicatorId: string) => {
-    switch(indicatorId) {
+    switch (indicatorId) {
       case 'ma-20': return calculateSMA(data, 20);
       case 'ma-50': return calculateSMA(data, 50);
       case 'ma-200': return calculateSMA(data, 200);
@@ -388,7 +393,7 @@ export default function TradingChart({
   // Update all active indicators with new data
   const updateIndicators = () => {
     const currentActiveIndicators = activeIndicatorsRef.current;
-    
+
     if (!chartRef.current || allDataRef.current.length === 0 || currentActiveIndicators.length === 0) {
       console.log('⚠️ Skipping indicator update:', {
         hasChart: !!chartRef.current,
@@ -404,7 +409,7 @@ export default function TradingChart({
     currentActiveIndicators.forEach((indicatorId) => {
       try {
         const indicatorData = calculateIndicatorData(allDataRef.current, indicatorId);
-        
+
         if (separatePaneIndicators.includes(indicatorId)) {
           // Update separate pane data
           setSeparatePaneIndicatorData(prev => {
@@ -441,24 +446,24 @@ export default function TradingChart({
     }
     if (type === 'histogram' || type === 'columns') {
       // Histogram needs time, value, and color
-      return data.map(d => ({ 
-        time: d.time, 
+      return data.map(d => ({
+        time: d.time,
         value: Math.abs(d.close - d.open), // Use range as value for columns
-        color: d.close >= d.open ? '#00D09C' : '#EB4D5C' 
+        color: d.close >= d.open ? '#00D09C' : '#EB4D5C'
       }));
     }
     if (type === 'heikin-ashi') {
       // Heikin-Ashi calculation
       const haData = [];
       let prevHA = { open: 0, close: 0 };
-      
+
       for (let i = 0; i < data.length; i++) {
         const d = data[i];
         const haClose = (d.open + d.high + d.low + d.close) / 4;
         const haOpen = i === 0 ? (d.open + d.close) / 2 : (prevHA.open + prevHA.close) / 2;
         const haHigh = Math.max(d.high, haOpen, haClose);
         const haLow = Math.min(d.low, haOpen, haClose);
-        
+
         haData.push({
           time: d.time,
           open: haOpen,
@@ -466,10 +471,10 @@ export default function TradingChart({
           low: haLow,
           close: haClose,
         });
-        
+
         prevHA = { open: haOpen, close: haClose };
       }
-      
+
       return haData;
     }
     if (type === 'renko') {
@@ -486,7 +491,7 @@ export default function TradingChart({
       // Kagi chart - use line with direction changes
       const kagiData = [];
       let prevClose = data[0]?.close || 0;
-      
+
       for (let i = 0; i < data.length; i++) {
         const d = data[i];
         kagiData.push({
@@ -494,7 +499,7 @@ export default function TradingChart({
           value: d.close,
         });
       }
-      
+
       return kagiData;
     }
     if (type === 'point-figure') {
@@ -518,7 +523,7 @@ export default function TradingChart({
     let resolution = '1';
     let roundedNow = now;
 
-    switch(interval) {
+    switch (interval) {
       case '1d':
         // For 1 day view, round to nearest 5 minutes
         roundedNow = Math.floor(now / 300) * 300;
@@ -579,11 +584,11 @@ export default function TradingChart({
       let adjustedToTimestamp = toTimestamp;
       let useRangeParam = false;
       let rangeValue = '1d';
-      
+
       // For Indian stocks and indices, check if we can use intraday intervals
       const isIndianStockOrIndex = symbol.endsWith('.NS') || symbol.startsWith('^NSE') || symbol.startsWith('^CNX');
       if (isIndianStockOrIndex) {
-        switch(interval) {
+        switch (interval) {
           case '1d':
             // For 1 day view, use 5-minute candles with range parameter
             yahooInterval = '5m';
@@ -625,7 +630,7 @@ export default function TradingChart({
             yahooInterval = '1d';
         }
       } else {
-        switch(interval) {
+        switch (interval) {
           case '1d':
             yahooInterval = '5m';
             break;
@@ -647,10 +652,10 @@ export default function TradingChart({
             yahooInterval = '1d';
         }
       }
-      
+
       const period1 = adjustedFromTimestamp;
       const period2 = adjustedToTimestamp;
-      
+
       // Use our Next.js API route to proxy the request (avoids CORS)
       let url: string;
       if (useRangeParam) {
@@ -670,10 +675,10 @@ export default function TradingChart({
         appendData,
         timeRange: `${((period2 - period1) / 3600).toFixed(1)} hours`
       });
-      
+
       const response = await fetch(url);
       const data = await response.json();
-      
+
       console.log('📊 Yahoo Finance API Response:', {
         symbol: symbol,
         hasData: !!data?.chart?.result?.[0],
@@ -687,17 +692,17 @@ export default function TradingChart({
         const result = data.chart.result[0];
         const timestamps = result.timestamp;
         const quotes = result.indicators.quote[0];
-        
+
         const candlestickData = timestamps.map((timestamp: number, index: number) => ({
           time: timestamp,
           open: quotes.open[index] || quotes.close[index],
           high: quotes.high[index] || quotes.close[index],
           low: quotes.low[index] || quotes.close[index],
           close: quotes.close[index],
-        })).filter((candle: any) => 
-          candle.open !== null && 
-          candle.high !== null && 
-          candle.low !== null && 
+        })).filter((candle: any) =>
+          candle.open !== null &&
+          candle.high !== null &&
+          candle.low !== null &&
           candle.close !== null
         );
 
@@ -717,7 +722,7 @@ export default function TradingChart({
             console.log('📊 Setting', formattedData.length, 'data points to chart from Yahoo Finance');
             candlestickSeriesRef.current.setData(formattedData);
             updateIndicators();
-            
+
             // Fetch and add news events after initial data load (not for append operations)
             if (!appendData) {
               fetchNewsEvents();
@@ -732,11 +737,11 @@ export default function TradingChart({
           console.log('ℹ️ Refresh: No new data from Yahoo Finance - keeping existing chart');
           return;
         }
-        
+
         // For non-refresh failures, log as error
         console.error('❌ No valid data from Yahoo Finance for:', symbol, '- Response:', data);
         console.error('❌ API failed to return valid data. Please try again later or check your network connection.');
-        
+
         // Don't generate sample data - just keep loading state off and show error
         if (!appendData) setIsLoading(false);
       }
@@ -746,10 +751,10 @@ export default function TradingChart({
         console.log('ℹ️ Refresh: Failed to fetch from Yahoo Finance - keeping existing chart');
         return;
       }
-      
+
       // For non-refresh failures, log as error
       console.error('❌ Error fetching Yahoo Finance data:', error);
-      
+
       // Same logic as above
       if (!appendData) {
         console.warn('⚠️ Falling back to sample data for initial load');
@@ -769,33 +774,33 @@ export default function TradingChart({
   // Fetch data from Yahoo Finance (for NSE stocks) or Finnhub
   const fetchChartData = async (fromTimestamp?: number, appendData: boolean = false) => {
     if (!appendData) setIsLoading(true);
-    
+
     try {
       // Check if chart is still mounted
       if (!chartRef.current || !chartContainerRef.current) {
         console.warn('Chart not mounted, skipping fetch');
         return;
       }
-      
+
       const { from, to, resolution } = getTimeRange(interval);
-      
+
       // Use provided timestamp or default
       const startTime = fromTimestamp || from;
-      
+
       // For Indian market symbols (NSE stocks and indices), use Yahoo Finance API instead of Finnhub
       // Covers: .NS stocks, ^NSEI, ^NSEBANK, ^CNXFIN, ^CNXIT, ^NSEMDCP50, etc.
       const isIndianSymbol = symbol.endsWith('.NS') || symbol.startsWith('^NSE') || symbol.startsWith('^CNX');
-      
+
       if (isIndianSymbol) {
         console.log('🔍 Fetching Indian market data from Yahoo Finance for:', symbol);
         await fetchYahooFinanceData(startTime, to, appendData);
         return;
       }
-      
+
       // For other stocks, use Finnhub
       const apiKey = process.env.NEXT_PUBLIC_FINNHUB_API_KEY;
       let finnhubSymbol = symbol;
-      
+
       const url = `https://finnhub.io/api/v1/stock/candle?symbol=${finnhubSymbol}&resolution=${resolution}&from=${startTime}&to=${to}&token=${apiKey}`;
       console.log('🔍 Fetching data from Finnhub:', {
         originalSymbol: symbol,
@@ -805,7 +810,7 @@ export default function TradingChart({
         to: new Date(to * 1000).toISOString(),
         url: apiKey ? url.replace(apiKey, 'API_KEY_HIDDEN') : url
       });
-      
+
       const response = await fetch(url);
       const data = await response.json();
 
@@ -829,7 +834,7 @@ export default function TradingChart({
           close: data.c[data.c.length - 1]
         } : null
       });
-      
+
       // If Finnhub fails for NSE stocks, log more details
       if (data.s !== 'ok') {
         console.warn('❌ Finnhub API failed for', finnhubSymbol, '- Full response:', data);
@@ -862,11 +867,11 @@ export default function TradingChart({
             const formattedData = formatDataForChartType(allDataRef.current, chartType);
             console.log('📊 Setting', formattedData.length, 'data points to chart (appendData:', appendData, ')');
             candlestickSeriesRef.current.setData(formattedData);
-            
+
             // Update indicators with new data
             console.log('🔄 Updating indicators after data load (total data points:', allDataRef.current.length, ')');
             updateIndicators();
-            
+
             // Fetch and add news events after initial data load (not for append operations)
             if (!appendData) {
               fetchNewsEvents();
@@ -891,32 +896,32 @@ export default function TradingChart({
   // Generate sample candlestick data for demo purposes
   const generateSampleData = (fromTimestamp?: number, appendData: boolean = false) => {
     console.log('⚠️ Generating sample data (Finnhub API returned no data)');
-    
+
     const now = Math.floor(Date.now() / 1000);
     const { from } = getTimeRange(interval);
     const dataPoints = 100;
-    
+
     let startTime = fromTimestamp || from;
     let endTime = appendData ? oldestTimestampRef.current : now;
-    
+
     // Safety check: ensure endTime > startTime
     if (endTime <= startTime) {
       console.warn('Invalid time range for sample data:', { startTime, endTime });
       endTime = startTime + (24 * 60 * 60); // Add 1 day
     }
-    
+
     const timeStep = Math.floor((endTime - startTime) / dataPoints);
-    
+
     // Safety check: ensure timeStep is positive
     if (timeStep <= 0) {
       console.warn('Invalid timeStep:', timeStep);
       return;
     }
-    
-    let price = appendData 
+
+    let price = appendData
       ? (allDataRef.current[0]?.open || 1000)
       : 1000 + Math.random() * 500;
-    
+
     const sampleData = [];
 
     for (let i = 0; i < dataPoints; i++) {
@@ -955,7 +960,7 @@ export default function TradingChart({
         const formattedData = formatDataForChartType(allDataRef.current, chartType);
         candlestickSeriesRef.current.setData(formattedData);
         console.log('✅ Set chart data:', allDataRef.current.length, 'candles (sample data)');
-        
+
         // Update indicators with new data
         console.log('🔄 Updating indicators after sample data load (total data points:', allDataRef.current.length, ')');
         updateIndicators();
@@ -970,29 +975,29 @@ export default function TradingChart({
     try {
       // Get company name from symbol mapping
       const companyName = getCompanyNameFromSymbol(symbol);
-      
+
       if (!companyName) {
         console.debug('No company mapping found for symbol:', symbol);
         setNewsEvents([]);
         return;
       }
-      
+
       console.log('📰 Fetching news events for:', symbol, '->', companyName);
-      
+
       // Use environment variable or default to localhost:8000
       const apiUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
       // Fetch all events for now (impact scores will be calculated later)
       const response = await fetch(`${apiUrl}/api/chart-events/${encodeURIComponent(companyName)}`, {
         signal: AbortSignal.timeout(5000) // 5 second timeout
       });
-      
+
       if (!response.ok) {
         console.warn('Failed to fetch news events:', response.status);
         return;
       }
-      
+
       const data = await response.json();
-      
+
       if (data.events && data.events.length > 0) {
         console.log('✅ Fetched', data.events.length, 'news events for', companyName);
         setNewsEvents(data.events);
@@ -1018,10 +1023,13 @@ export default function TradingChart({
       return;
     }
 
+
     try {
-      // Convert events to marker format for lightweight-charts
-      const markers = events.map((event: any) => {
-        // Parse timestamp (could be ISO string or Unix timestamp)
+      // Group events by day to show ONE marker per day
+      const eventsByDay = new Map<number, any[]>();
+
+      events.forEach((event: any) => {
+        // Parse timestamp
         let time: number;
         if (typeof event.timestamp === 'string') {
           time = Math.floor(new Date(event.timestamp).getTime() / 1000);
@@ -1029,28 +1037,53 @@ export default function TradingChart({
           time = event.timestamp;
         }
 
-        // Determine marker color based on sentiment
-        let color = '#9B9B9B'; // neutral gray
-        if (event.sentiment_label === 'positive') {
-          color = '#00D09C'; // green
-        } else if (event.sentiment_label === 'negative') {
-          color = '#FF4976'; // red
+        // Group by day (86400 seconds = 1 day)
+        const dayKey = Math.floor(time / 86400) * 86400;
+
+        if (!eventsByDay.has(dayKey)) {
+          eventsByDay.set(dayKey, []);
+        }
+        eventsByDay.get(dayKey)!.push({ ...event, parsedTime: time });
+      });
+
+      // Create ONE marker per day
+      const markers = Array.from(eventsByDay.entries()).map(([dayKey, dayEvents]) => {
+        // Count sentiments
+        const positive = dayEvents.filter(e => e.sentiment_label === 'positive').length;
+        const negative = dayEvents.filter(e => e.sentiment_label === 'negative').length;
+        const neutral = dayEvents.filter(e => e.sentiment_label === 'neutral').length;
+
+        // Dominant sentiment determines color
+        let color = '#9B9B9B';
+        let position: 'aboveBar' | 'belowBar' = 'aboveBar';
+
+        if (positive > negative && positive > neutral) {
+          color = '#00D09C';
+          position = 'aboveBar';
+        } else if (negative > positive && negative > neutral) {
+          color = '#FF4976';
+          position = 'belowBar';
         }
 
-        // Determine marker position (above or below the bar)
-        const position = event.sentiment_label === 'positive' ? 'aboveBar' : 'belowBar';
+        // Use first event's time for positioning
+        const markerTime = dayEvents[0].parsedTime;
 
         return {
-          time: time,
+          time: markerTime,
           position: position,
           color: color,
-          shape: 'circle',
-          text: '📰',
-          size: 1,
+          shape: 'circle' as const,
+          text: `${dayEvents.length}`,
+          size: 1.5,
+          // Store events for hover tooltip
+          customData: dayEvents
         };
       });
 
-      console.log('📍 Adding', markers.length, 'news markers to chart');
+      // Store events by day for hover detection
+      eventsByDayRef.current = eventsByDay;
+
+      console.log(`📍 Adding ${markers.length} markers (${events.length} events total)`);
       candlestickSeriesRef.current.setMarkers(markers);
     } catch (error) {
       console.error('Error adding news markers to chart:', error);
@@ -1066,23 +1099,23 @@ export default function TradingChart({
       });
       return;
     }
-    
+
     // Check if chart is still mounted
     if (!chartRef.current || !chartContainerRef.current) {
       console.warn('Chart not mounted, skipping load more');
       return;
     }
-    
+
     isLoadingMoreRef.current = true;
     setIsLoadingMore(true);
-    
+
     console.log('📜 Loading more historical data from timestamp:', new Date(oldestTimestampRef.current * 1000).toISOString());
-    
+
     // Calculate how far back to fetch based on interval
     const { resolution } = getTimeRange(interval);
     let additionalTime = 0;
-    
-    switch(interval) {
+
+    switch (interval) {
       case '1d':
         additionalTime = 24 * 60 * 60; // 1 more day
         break;
@@ -1107,11 +1140,11 @@ export default function TradingChart({
       default:
         additionalTime = 24 * 60 * 60;
     }
-    
+
     const newFrom = oldestTimestampRef.current - additionalTime;
     console.log('📥 Fetching data from:', new Date(newFrom * 1000).toISOString(), 'to', new Date(oldestTimestampRef.current * 1000).toISOString());
     await fetchChartData(newFrom, true);
-    
+
     isLoadingMoreRef.current = false;
     setIsLoadingMore(false);
     console.log('✅ Completed loading more historical data');
@@ -1216,7 +1249,7 @@ export default function TradingChart({
 
     // Add series based on chart type (initial load)
     let series;
-    switch(chartType) {
+    switch (chartType) {
       case 'line':
       case 'line-break':
         series = chart.addLineSeries({ color: '#00D09C', lineWidth: 2 });
@@ -1324,27 +1357,27 @@ export default function TradingChart({
     chart.subscribeCrosshairMove((param) => {
       try {
         // Check if hovering over a news marker
-        if (param.time && newsEvents.length > 0) {
+        if (param.time && eventsByDayRef.current.size > 0 && param.point) {
           const hoveredTime = param.time as number;
-          const hoveredNewsEvent = newsEvents.find((event) => {
-            let eventTime: number;
-            if (typeof event.timestamp === 'string') {
-              eventTime = Math.floor(new Date(event.timestamp).getTime() / 1000);
-            } else {
-              eventTime = event.timestamp;
-            }
-            // Check if within ~1 day of the event (adjust tolerance as needed)
-            return Math.abs(eventTime - hoveredTime) < 86400; // 1 day tolerance
-          });
+          const dayKey = Math.floor(hoveredTime / 86400) * 86400;
 
-          if (hoveredNewsEvent && param.point) {
-            setHoveredEvent(hoveredNewsEvent);
-            setTooltipPosition({ x: param.point.x, y: param.point.y });
+          // Check if there are events for this day
+          const dayEvents = eventsByDayRef.current.get(dayKey);
+
+          if (dayEvents && dayEvents.length > 0) {
+            // Show toast with all events for this day
+            setHoveredMarkerEvents(dayEvents);
+            setToastPosition({ x: param.point.x, y: param.point.y });
+            setShowNewsToast(true);
+            setHoveredEvent(null);
+            setTooltipPosition(null);
           } else {
+            setShowNewsToast(false);
             setHoveredEvent(null);
             setTooltipPosition(null);
           }
         } else {
+          setShowNewsToast(false);
           setHoveredEvent(null);
           setTooltipPosition(null);
         }
@@ -1421,14 +1454,14 @@ export default function TradingChart({
   useEffect(() => {
     if (refreshTrigger > 0 && chartRef.current && candlestickSeriesRef.current && allDataRef.current.length > 0) {
       console.log('🔄 Refresh triggered, fetching latest data without resetting view...');
-      
+
       // Save current visible range to restore it later
       const timeScale = chartRef.current.timeScale();
       const visibleLogicalRange = timeScale.getVisibleLogicalRange();
-      
+
       // Fetch only the latest data point(s) - get data from the last known timestamp to now
       const lastTimestamp = allDataRef.current[allDataRef.current.length - 1]?.time || 0;
-      
+
       // Fetch new data and append it
       fetchLatestData(lastTimestamp).then(() => {
         // Restore the visible range after data is updated
@@ -1447,7 +1480,7 @@ export default function TradingChart({
   // Separate effect for chart click handlers
   useEffect(() => {
     console.log('🎯 Setting up click handlers. Mode:', chartDateSelectionMode || isDateSelectionActive);
-    
+
     if (!chartContainerRef.current || !chartRef.current) {
       console.log('❌ Container or chart not ready');
       return;
@@ -1455,10 +1488,10 @@ export default function TradingChart({
 
     const container = chartContainerRef.current;
     const isActive = chartDateSelectionMode || isDateSelectionActive;
-    
+
     const handleClick = (e: MouseEvent) => {
       console.log('🖱️ Click detected. Mode:', isActive, 'HasCallback:', !!onChartClick);
-      
+
       if (isActive && onChartClick && chartRef.current) {
         const timeScale = chartRef.current.timeScale();
         const coordinate = e.offsetX;
@@ -1496,7 +1529,7 @@ export default function TradingChart({
     try {
       const now = Math.floor(Date.now() / 1000);
       const { resolution } = getTimeRange(interval);
-      
+
       // For NSE stocks, use Yahoo Finance
       if (symbol.endsWith('.NS')) {
         console.log('📡 Fetching latest NSE data from Yahoo Finance');
@@ -1508,14 +1541,14 @@ export default function TradingChart({
         }
         return;
       }
-      
+
       // For other stocks, use Finnhub
       const apiKey = process.env.NEXT_PUBLIC_FINNHUB_API_KEY;
       let finnhubSymbol = symbol;
-      
+
       const url = `https://finnhub.io/api/v1/stock/candle?symbol=${finnhubSymbol}&resolution=${resolution}&from=${fromTimestamp}&to=${now}&token=${apiKey}`;
       console.log('📡 Fetching latest data from:', new Date(fromTimestamp * 1000).toISOString(), 'to now');
-      
+
       const response = await fetch(url);
       const data = await response.json();
 
@@ -1532,15 +1565,15 @@ export default function TradingChart({
 
         if (newCandles.length > 0) {
           console.log('✨ Appending', newCandles.length, 'new candles');
-          
+
           // Append new data
           allDataRef.current = validateAndSortData([...allDataRef.current, ...newCandles]);
-          
+
           // Update the chart with all data
           if (candlestickSeriesRef.current && chartRef.current) {
             const formattedData = formatDataForChartType(allDataRef.current, chartType);
             candlestickSeriesRef.current.setData(formattedData);
-            
+
             // Update indicators
             updateIndicators();
           }
@@ -1602,14 +1635,14 @@ export default function TradingChart({
       hasChartRef: !!chartRef.current,
       hasOverlayRef: !!highlightOverlayRef.current
     });
-    
+
     if (!chartRef.current || !highlightOverlayRef.current) return;
-    
+
     const updateOverlayPosition = () => {
       if (!chartRef.current || !highlightOverlayRef.current) return;
-      
+
       const overlay = highlightOverlayRef.current;
-      
+
       // Show overlay whenever dates are selected, regardless of mode
       // This ensures the highlight persists even when portfolio tab is closed
       if (!selectedStartDate && !selectedEndDate) {
@@ -1617,63 +1650,63 @@ export default function TradingChart({
         console.log('🚫 Hiding overlay - no dates selected');
         return;
       }
-      
+
       // Show overlay when we have at least one date
       if (selectedStartDate || selectedEndDate) {
         overlay.style.display = 'block';
-        
+
         const timeScale = chartRef.current.timeScale();
         const chartContainer = chartContainerRef.current;
         if (!chartContainer) return;
-        
+
         const containerRect = chartContainer.getBoundingClientRect();
         const chartWidth = containerRect.width;
-        
+
         let startX = 0;
         let endX = chartWidth;
-        
+
         try {
           if (selectedStartDate) {
             startX = timeScale.timeToCoordinate(selectedStartDate) || 0;
           }
-          
+
           if (selectedEndDate) {
             endX = timeScale.timeToCoordinate(selectedEndDate) || chartWidth;
           } else if (selectedStartDate) {
             // If only start date is selected, extend to the right edge
             endX = chartWidth;
           }
-          
+
           // Ensure proper order (start should be left of end)
           const left = Math.min(startX, endX);
           const right = Math.max(startX, endX);
           const width = right - left;
-          
+
           // Position the overlay with gradient
           overlay.style.left = `${left}px`;
           overlay.style.width = `${width}px`;
           overlay.style.height = '100%';
           overlay.style.top = '0';
           overlay.style.background = 'linear-gradient(90deg, rgba(0, 208, 156, 0.05) 0%, rgba(0, 208, 156, 0.2) 50%, rgba(0, 208, 156, 0.05) 100%)';
-          
+
           console.log('✅ Overlay positioned:', { left, width, startX, endX });
-          
+
         } catch (e) {
           console.warn('Could not position highlight overlay:', e);
         }
       }
     };
-    
+
     // Initial update
     updateOverlayPosition();
-    
+
     // Subscribe to visible range changes to update overlay position on pan/zoom
     const chart = chartRef.current;
     if (chart) {
       const unsubscribe = chart.timeScale().subscribeVisibleLogicalRangeChange(() => {
         updateOverlayPosition();
       });
-      
+
       return () => {
         if (unsubscribe) {
           unsubscribe();
@@ -1685,7 +1718,7 @@ export default function TradingChart({
   // Update series when chart type changes
   useEffect(() => {
     if (!chartRef.current || !chartContainerRef.current) return;
-    
+
     // Remove old series
     if (candlestickSeriesRef.current) {
       chartRef.current.removeSeries(candlestickSeriesRef.current);
@@ -1693,7 +1726,7 @@ export default function TradingChart({
 
     // Add new series based on chart type
     let series;
-    switch(chartType) {
+    switch (chartType) {
       case 'line':
       case 'line-break':
         series = chartRef.current.addLineSeries({
@@ -1711,8 +1744,8 @@ export default function TradingChart({
         break;
       case 'baseline':
         // Calculate average price for baseline
-        const avgPrice = allDataRef.current.length > 0 
-          ? allDataRef.current.reduce((sum: number, d: any) => sum + d.close, 0) / allDataRef.current.length 
+        const avgPrice = allDataRef.current.length > 0
+          ? allDataRef.current.reduce((sum: number, d: any) => sum + d.close, 0) / allDataRef.current.length
           : 1000;
         series = chartRef.current.addBaselineSeries({
           baseValue: { type: 'price', price: avgPrice },
@@ -1888,7 +1921,7 @@ export default function TradingChart({
           console.log(`Calculating indicator: ${indicatorId}`);
           const indicatorData = calculateIndicatorData(allDataRef.current, indicatorId);
           console.log(`Indicator ${indicatorId} data points:`, indicatorData.length);
-          
+
           if (indicatorData.length > 0) {
             // Check if this indicator needs a separate pane
             if (separatePaneIndicators.includes(indicatorId)) {
@@ -1908,7 +1941,7 @@ export default function TradingChart({
                 priceLineVisible: false,
                 lastValueVisible: true,
               });
-              
+
               series.setData(indicatorData);
               indicatorSeriesRef.current.set(indicatorId, series);
               console.log(`Added overlay indicator series: ${indicatorId}`);
@@ -1975,7 +2008,7 @@ export default function TradingChart({
 
   // Calculate how to distribute space between main chart and indicator panes
   const separatePaneCount = Array.from(separatePaneIndicatorData.keys()).length;
-  
+
   // Space distribution logic:
   // - No indicators: main chart takes 100%
   // - 1 indicator: 65% main, 35% indicator
@@ -1983,7 +2016,7 @@ export default function TradingChart({
   // - 3+ indicators: 55% main, split remaining among indicators
   let mainChartPercent = 100;
   let indicatorPercent = 0;
-  
+
   if (separatePaneCount === 1) {
     mainChartPercent = 65;
     indicatorPercent = 35;
@@ -2010,7 +2043,7 @@ export default function TradingChart({
             <span>Loading historical data...</span>
           </div>
         )}
-        
+
         {/* Date Selection Toggle Button - Positioned beside OHLC bar */}
         <button
           onClick={() => {
@@ -2020,31 +2053,30 @@ export default function TradingChart({
               onChartRightClick();
             }
           }}
-          className={`absolute top-14 left-4 text-xs px-3 py-2 rounded-md shadow-lg z-20 transition-all duration-200 flex items-center space-x-2 ${
-            isDateSelectionActive || chartDateSelectionMode
-              ? 'bg-[#00D09C] text-white hover:bg-[#00B386]'
-              : 'bg-gray-100 dark:bg-[#1A1D24] text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#23272F]'
-          }`}
+          className={`absolute top-14 left-4 text-xs px-3 py-2 rounded-md shadow-lg z-20 transition-all duration-200 flex items-center space-x-2 ${isDateSelectionActive || chartDateSelectionMode
+            ? 'bg-[#00D09C] text-white hover:bg-[#00B386]'
+            : 'bg-gray-100 dark:bg-[#1A1D24] text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#23272F]'
+            }`}
           title={isDateSelectionActive ? "Click to disable date selection" : "Click to select date range from chart"}
         >
-          <svg 
-            className="w-3.5 h-3.5" 
-            fill="none" 
-            stroke="currentColor" 
+          <svg
+            className="w-3.5 h-3.5"
+            fill="none"
+            stroke="currentColor"
             viewBox="0 0 24 24"
           >
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              strokeWidth={2} 
-              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" 
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
             />
           </svg>
           <span className="font-medium">
             {isDateSelectionActive || chartDateSelectionMode ? 'Date Selection ON' : 'Select Period'}
           </span>
         </button>
-        
+
         {/* Portfolio Date Selection Indicator */}
         {(chartDateSelectionMode || isDateSelectionActive) && (
           <div className="absolute top-4 right-4 bg-[#00D09C] text-white text-xs px-3 py-2 rounded-md shadow-lg z-10 pointer-events-none max-w-xs">
@@ -2083,7 +2115,7 @@ export default function TradingChart({
           </div>
         )}
         {/* Highlight overlay for selected date range */}
-        <div 
+        <div
           ref={highlightOverlayRef}
           className="absolute pointer-events-none z-[5]"
           style={{
@@ -2093,7 +2125,7 @@ export default function TradingChart({
           }}
         />
         <div ref={chartContainerRef} className="w-full h-full cursor-crosshair" />
-        
+
         {/* News Event Tooltip */}
         {hoveredEvent && tooltipPosition && (
           <div
@@ -2108,13 +2140,12 @@ export default function TradingChart({
               {/* Sentiment Badge */}
               <div className="flex items-center gap-2 mb-2">
                 <span
-                  className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                    hoveredEvent.sentiment_label === 'positive'
-                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                      : hoveredEvent.sentiment_label === 'negative'
+                  className={`px-2 py-0.5 rounded text-[10px] font-semibold ${hoveredEvent.sentiment_label === 'positive'
+                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                    : hoveredEvent.sentiment_label === 'negative'
                       ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
                       : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400'
-                  }`}
+                    }`}
                 >
                   {hoveredEvent.sentiment_label?.toUpperCase() || 'NEUTRAL'}
                 </span>
@@ -2153,13 +2184,12 @@ export default function TradingChart({
                 <div className="flex items-center gap-1 text-[10px]">
                   <span className="text-gray-600 dark:text-gray-400">Price Impact:</span>
                   <span
-                    className={`font-semibold ${
-                      hoveredEvent.price_change_pct > 0
-                        ? 'text-green-600 dark:text-green-400'
-                        : hoveredEvent.price_change_pct < 0
+                    className={`font-semibold ${hoveredEvent.price_change_pct > 0
+                      ? 'text-green-600 dark:text-green-400'
+                      : hoveredEvent.price_change_pct < 0
                         ? 'text-red-600 dark:text-red-400'
                         : 'text-gray-600 dark:text-gray-400'
-                    }`}
+                      }`}
                   >
                     {hoveredEvent.price_change_pct > 0 ? '+' : ''}
                     {hoveredEvent.price_change_pct.toFixed(2)}%
@@ -2193,6 +2223,15 @@ export default function TradingChart({
           </div>
         );
       })}
+
+      {/* News Toast - Shows on marker hover */}
+      {showNewsToast && hoveredMarkerEvents.length > 0 && (
+        <NewsToast
+          events={hoveredMarkerEvents}
+          position={toastPosition}
+          onClose={() => setShowNewsToast(false)}
+        />
+      )}
     </div>
   );
 }
