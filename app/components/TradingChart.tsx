@@ -50,6 +50,7 @@ export default function TradingChart({
   const [hoveredMarkerEvents, setHoveredMarkerEvents] = useState<any[]>([]);
   const [toastPosition, setToastPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const eventsByDayRef = useRef<Map<number, any[]>>(new Map());
+  const activeClusterKeyRef = useRef<number | null>(null);
   const allDataRef = useRef<any[]>([]);
   const oldestTimestampRef = useRef<number>(0);
   const isLoadingMoreRef = useRef<boolean>(false);
@@ -1028,6 +1029,15 @@ export default function TradingChart({
       // Group events by day to show ONE marker per day
       const eventsByDay = new Map<number, any[]>();
 
+      // Determine clustering period based on interval
+      let clusterPeriod = 86400; // 1 day (default)
+
+      if (interval === '5y' || interval === '10y') {
+        clusterPeriod = 604800; // 1 week for very long periods
+      } else if (interval === '1y') {
+        clusterPeriod = 259200; // 3 days for 1 year view
+      }
+
       events.forEach((event: any) => {
         // Parse timestamp
         let time: number;
@@ -1037,8 +1047,8 @@ export default function TradingChart({
           time = event.timestamp;
         }
 
-        // Group by day (86400 seconds = 1 day)
-        const dayKey = Math.floor(time / 86400) * 86400;
+        // Group by cluster period
+        const dayKey = Math.floor(time / clusterPeriod) * clusterPeriod;
 
         if (!eventsByDay.has(dayKey)) {
           eventsByDay.set(dayKey, []);
@@ -1357,29 +1367,49 @@ export default function TradingChart({
     chart.subscribeCrosshairMove((param) => {
       try {
         // Check if hovering over a news marker
+        // Check if hovering over a news marker
         if (param.time && eventsByDayRef.current.size > 0 && param.point) {
+          // Determine clustering period based on interval (MUST MATCH addNewsMarkersToChart)
+          let clusterPeriod = 86400;
+          if (interval === '5y' || interval === '10y') {
+            clusterPeriod = 604800;
+          } else if (interval === '1y') {
+            clusterPeriod = 259200;
+          }
+
           const hoveredTime = param.time as number;
-          const dayKey = Math.floor(hoveredTime / 86400) * 86400;
+          const dayKey = Math.floor(hoveredTime / clusterPeriod) * clusterPeriod;
 
           // Check if there are events for this day
           const dayEvents = eventsByDayRef.current.get(dayKey);
 
           if (dayEvents && dayEvents.length > 0) {
-            // Show toast with all events for this day
-            setHoveredMarkerEvents(dayEvents);
-            setToastPosition({ x: param.point.x, y: param.point.y });
-            setShowNewsToast(true);
-            setHoveredEvent(null);
-            setTooltipPosition(null);
+            // Only update if we entered a NEW cluster
+            if (activeClusterKeyRef.current !== dayKey) {
+              activeClusterKeyRef.current = dayKey;
+              setHoveredMarkerEvents(dayEvents);
+              setToastPosition({ x: param.point.x, y: param.point.y });
+              setShowNewsToast(true);
+              setHoveredEvent(null);
+              setTooltipPosition(null);
+            }
           } else {
+            // Only clear if we were previously showing something
+            if (activeClusterKeyRef.current !== null) {
+              activeClusterKeyRef.current = null;
+              setShowNewsToast(false);
+              setHoveredEvent(null);
+              setTooltipPosition(null);
+            }
+          }
+        } else {
+          // Only clear if we were previously showing something
+          if (activeClusterKeyRef.current !== null) {
+            activeClusterKeyRef.current = null;
             setShowNewsToast(false);
             setHoveredEvent(null);
             setTooltipPosition(null);
           }
-        } else {
-          setShowNewsToast(false);
-          setHoveredEvent(null);
-          setTooltipPosition(null);
         }
 
         if (param.time && param.seriesData.size > 0 && onCrosshairMove) {
