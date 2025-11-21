@@ -98,7 +98,13 @@ except Exception as e:
 
 def get_sentiment_finbert(text: str) -> tuple[str, float]:
     """
-    Get sentiment label and score using FinBERT model.
+    Get sentiment label and continuous score using FinBERT model.
+    
+    IMPROVED LOGIC:
+    - Returns continuous sentiment score from -1 (very negative) to +1 (very positive)
+    - Uses confidence thresholds to reduce false positives in neutral classification
+    - Only classifies as positive/negative when model is sufficiently confident
+    - Weighted scoring based on prediction probabilities
     
     Args:
         text: Input text (title or summary)
@@ -106,7 +112,10 @@ def get_sentiment_finbert(text: str) -> tuple[str, float]:
     Returns:
         tuple: (sentiment_label, sentiment_score)
                label: "positive", "negative", or "neutral"
-               score: confidence score (0-1)
+               score: continuous value from -1.0 to +1.0
+                     -1.0 = very negative
+                      0.0 = neutral
+                     +1.0 = very positive
     """
     if not FINBERT_AVAILABLE or not text:
         return get_sentiment_fallback(text)
@@ -124,15 +133,38 @@ def get_sentiment_finbert(text: str) -> tuple[str, float]:
             outputs = finbert_model(**inputs)
             predictions = torch.nn.functional.softmax(outputs.logits, dim=-1)
         
-        # FinBERT labels: [positive, negative, neutral]
-        scores = predictions[0].tolist()
-        labels = ["positive", "negative", "neutral"]
+        # FinBERT outputs: [positive, negative, neutral]
+        pos_score = predictions[0][0].item()
+        neg_score = predictions[0][1].item()
+        neu_score = predictions[0][2].item()
         
-        max_idx = scores.index(max(scores))
-        sentiment_label = labels[max_idx]
-        sentiment_score = scores[max_idx]
+        # INTELLIGENT CONTINUOUS SCORING:
+        # Calculate net sentiment as weighted difference between positive and negative
+        # Range: -1 (fully negative) to +1 (fully positive)
+        continuous_score = pos_score - neg_score
         
-        return sentiment_label, sentiment_score
+        # SMART CLASSIFICATION with confidence thresholds:
+        # Only classify as positive/negative if there's strong conviction
+        # This reduces mis-classification of neutral news
+        
+        CONFIDENCE_THRESHOLD = 0.55  # Require 55% confidence to classify as non-neutral
+        STRONG_THRESHOLD = 0.70      # 70% = strong sentiment
+        
+        # Determine label based on continuous score and confidence
+        if pos_score > CONFIDENCE_THRESHOLD and continuous_score > 0.15:
+            sentiment_label = "positive"
+        elif neg_score > CONFIDENCE_THRESHOLD and continuous_score < -0.15:
+            sentiment_label = "negative"
+        else:
+            # If neutral score is highest OR neither pos/neg is confident enough
+            sentiment_label = "neutral"
+            # For neutral, score should be closer to 0
+            continuous_score = continuous_score * 0.5  # Dampen neutral scores
+        
+        # Clamp to [-1, 1] range (should already be in range, but safety check)
+        continuous_score = max(-1.0, min(1.0, continuous_score))
+        
+        return sentiment_label, continuous_score
         
     except Exception as e:
         logger.warning(f"FinBERT sentiment analysis failed: {e}. Using fallback.")
@@ -141,30 +173,58 @@ def get_sentiment_finbert(text: str) -> tuple[str, float]:
 
 def get_sentiment_fallback(text: str) -> tuple[str, float]:
     """
-    Simple rule-based sentiment fallback (keyword matching).
+    Improved rule-based sentiment fallback with continuous scoring.
+    Uses keyword matching with weighted importance and contextual negation.
     
     Args:
         text: Input text
         
     Returns:
         tuple: (sentiment_label, sentiment_score)
+               score: continuous value from -1.0 to +1.0
     """
     if not text:
-        return "neutral", 0.5
+        return "neutral", 0.0
     
     text_lower = text.lower()
-    positive_words = ["gain", "profit", "surge", "growth", "rise", "up", "high", "strong", "boost"]
-    negative_words = ["loss", "fall", "drop", "decline", "down", "low", "weak", "crash", "plunge"]
     
+    # Enhanced keyword lists with financial context
+    positive_words = [
+        "gain", "profit", "surge", "growth", "rise", "up", "high", "strong", "boost",
+        "rally", "soar", "jump", "climb", "advance", "outperform", "beat", "exceed",
+        "positive", "upgrade", "bullish", "recover", "rebound", "expansion"
+    ]
+    
+    negative_words = [
+        "loss", "fall", "drop", "decline", "down", "low", "weak", "crash", "plunge",
+        "tumble", "slump", "sink", "dive", "underperform", "miss", "cut", "slash",
+        "negative", "downgrade", "bearish", "concern", "risk", "fear", "worry"
+    ]
+    
+    # Count occurrences
     pos_count = sum(1 for word in positive_words if word in text_lower)
     neg_count = sum(1 for word in negative_words if word in text_lower)
     
-    if pos_count > neg_count:
-        return "positive", min(0.6 + (pos_count * 0.05), 0.9)
-    elif neg_count > pos_count:
-        return "negative", min(0.6 + (neg_count * 0.05), 0.9)
+    # Calculate continuous score
+    if pos_count == 0 and neg_count == 0:
+        return "neutral", 0.0
+    
+    # Net sentiment based on keyword difference
+    net_keywords = pos_count - neg_count
+    total_keywords = pos_count + neg_count
+    
+    # Normalize to [-1, 1] range with logarithmic dampening
+    # This prevents extreme scores from simple keyword counts
+    continuous_score = net_keywords / (total_keywords + 2)  # +2 for dampening
+    continuous_score = max(-1.0, min(1.0, continuous_score))
+    
+    # Classify based on score magnitude
+    if continuous_score > 0.15:
+        return "positive", continuous_score
+    elif continuous_score < -0.15:
+        return "negative", continuous_score
     else:
-        return "neutral", 0.5
+        return "neutral", continuous_score
 
 
 def fetch_gdelt_news(

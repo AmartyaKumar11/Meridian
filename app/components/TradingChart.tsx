@@ -2376,7 +2376,7 @@ export default function TradingChart({
                         event.sentiment_label === 'positive' ? 'text-green-400' :
                         event.sentiment_label === 'negative' ? 'text-red-400' : 'text-gray-400'
                       }`}>
-                        {(event.sentiment_score * 100).toFixed(0)}%
+                        {event.sentiment_score >= 0 ? '+' : ''}{event.sentiment_score.toFixed(2)}
                       </span>
                     </div>
                     <div className="flex items-center gap-1 text-[10px]">
