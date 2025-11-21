@@ -220,7 +220,25 @@ def fetch_gdelt_news(
             # Set encoding explicitly to handle special characters
             response.encoding = 'utf-8'
             
-            data = response.json()
+            # Check if response has content
+            if not response.text or not response.text.strip():
+                logger.warning(f"Empty response from GDELT (attempt {attempt + 1}/{retry_count})")
+                if attempt < retry_count - 1:
+                    time.sleep(backoff_seconds * (attempt + 1))
+                    continue
+                else:
+                    logger.warning(f"No articles found for '{company}' in date range (empty responses)")
+                    return pd.DataFrame()
+            
+            try:
+                data = response.json()
+            except ValueError as json_err:
+                logger.warning(f"Invalid JSON response (attempt {attempt + 1}/{retry_count}): {json_err}")
+                if attempt < retry_count - 1:
+                    time.sleep(backoff_seconds * (attempt + 1))
+                    continue
+                else:
+                    return pd.DataFrame()
             
             if "articles" not in data or not data["articles"]:
                 logger.warning(f"No articles found for '{company}' in date range")

@@ -78,19 +78,19 @@ def main():
     print("NIFTY 50 - 5 YEARS HISTORICAL NEWS DATA COLLECTION (CHUNKED)")
     print("=" * 80)
     print(f"Total stocks: {len(NIFTY_50_STOCKS)}")
-    print(f"Time range: Last 5 years in 3-month chunks")
+    print(f"Time range: Last 5 years in 1-month chunks")
     print("=" * 80)
     
     # Calculate date range for last 5 years
     end_date = datetime.now()
     start_date = end_date - timedelta(days=5*365)
     
-    # Generate 3-month chunks
-    date_chunks = generate_date_chunks(start_date, end_date, months=3)
+    # Generate 1-month chunks (safer for GDELT API)
+    date_chunks = generate_date_chunks(start_date, end_date, months=1)
     
     print(f"\nStart Date: {start_date.strftime('%Y-%m-%d')}")
     print(f"End Date: {end_date.strftime('%Y-%m-%d')}")
-    print(f"Total chunks: {len(date_chunks)} (3 months each)")
+    print(f"Total chunks: {len(date_chunks)} (1 month each)")
     print("\n" + "=" * 80)
     
     successful_companies = []
@@ -116,7 +116,7 @@ def main():
                     start_date=start_str,
                     end_date=end_str,
                     with_prices=True,
-                    max_records=500  # Limit per chunk
+                    max_records=250  # Limit per chunk (GDELT default)
                 )
                 
             except Exception as e:
