@@ -70,8 +70,14 @@ class MarketDataManager:
             if isinstance(data, pd.Series):
                 data = data.to_frame(name=tickers[0])
             
-            # Fill missing values
-            data = data.fillna(method='ffill').fillna(method='bfill')
+            # Fill missing values using new pandas syntax
+            data = data.ffill().bfill()
+            
+            # Drop tickers with ALL missing data, but be more lenient
+            data = data.dropna(axis=1, how='all')
+            
+            if data.empty:
+                raise ValueError("No valid data after cleaning")
             
             # Cache the result
             if self.cache.enabled:

@@ -2274,12 +2274,12 @@ export default function TradingChart({
 
       {/* News Panel - Shows on marker click */}
       {showNewsPanel && newsPanelEvents.length > 0 && (
-        <div className="absolute top-16 right-4 z-40 w-96 max-h-[70vh] bg-[#1F2228] dark:bg-[#1F2228] rounded-lg shadow-2xl border border-gray-700 flex flex-col">
+        <div className="absolute top-16 right-4 z-40 w-96 max-h-[70vh] bg-white dark:bg-[#1F2228] rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-[#00D09C]"></div>
-              <h3 className="text-sm font-semibold text-white">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
                 News Events ({newsPanelEvents.length})
               </h3>
             </div>
@@ -2288,21 +2288,21 @@ export default function TradingChart({
                 setShowNewsPanel(false);
                 setSelectedSentimentFilter('all');
               }}
-              className="p-1 hover:bg-gray-700 rounded transition-colors"
+              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
             >
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-2 px-4 py-2 border-b border-gray-700">
+          <div className="flex gap-2 px-4 py-2 border-b border-gray-200 dark:border-gray-700">
             <button
               onClick={() => setSelectedSentimentFilter('all')}
               className={`px-3 py-1 text-xs font-medium rounded ${selectedSentimentFilter === 'all'
                 ? 'bg-[#00D09C] text-white'
-                : 'text-gray-400 hover:bg-gray-700'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
             >
               All ({newsPanelEvents.length})
@@ -2311,7 +2311,7 @@ export default function TradingChart({
               onClick={() => setSelectedSentimentFilter('positive')}
               className={`px-3 py-1 text-xs font-medium rounded ${selectedSentimentFilter === 'positive'
                 ? 'bg-green-600 text-white'
-                : 'text-green-400 hover:bg-green-900/20'
+                : 'text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20'
                 }`}
             >
               Positive ({newsPanelEvents.filter(e => e.sentiment_label === 'positive').length})
@@ -2320,7 +2320,7 @@ export default function TradingChart({
               onClick={() => setSelectedSentimentFilter('negative')}
               className={`px-3 py-1 text-xs font-medium rounded ${selectedSentimentFilter === 'negative'
                 ? 'bg-red-600 text-white'
-                : 'text-red-400 hover:bg-red-900/20'
+                : 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
                 }`}
             >
               Negative ({newsPanelEvents.filter(e => e.sentiment_label === 'negative').length})
@@ -2329,7 +2329,7 @@ export default function TradingChart({
               onClick={() => setSelectedSentimentFilter('neutral')}
               className={`px-3 py-1 text-xs font-medium rounded ${selectedSentimentFilter === 'neutral'
                 ? 'bg-gray-600 text-white'
-                : 'text-gray-400 hover:bg-gray-700'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
             >
               Neutral ({newsPanelEvents.filter(e => e.sentiment_label === 'neutral').length})
@@ -2344,20 +2344,20 @@ export default function TradingChart({
               .map((event, idx) => (
                 <div
                   key={idx}
-                  className="mb-3 pb-3 border-b border-gray-700 last:border-0 hover:bg-gray-800/30 rounded p-2 transition-colors"
+                  className="mb-3 pb-3 border-b border-gray-200 dark:border-gray-700 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30 rounded p-2 transition-colors"
                 >
                   <div className="flex items-center gap-2 mb-2">
                     <span
                       className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${event.sentiment_label === 'positive'
-                        ? 'bg-green-900/30 text-green-400'
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
                         : event.sentiment_label === 'negative'
-                          ? 'bg-red-900/30 text-red-400'
-                          : 'bg-gray-700 text-gray-300'
+                          ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                         }`}
                     >
                       {event.sentiment_label || 'NEUTRAL'}
                     </span>
-                    <span className="text-[10px] text-gray-400">
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400">
                       {new Date(
                         typeof event.timestamp === 'string'
                           ? event.timestamp
@@ -2366,21 +2366,21 @@ export default function TradingChart({
                     </span>
                   </div>
 
-                  <h4 className="text-xs font-medium text-white mb-2 leading-tight">
+                  <h4 className="text-xs font-medium text-gray-900 dark:text-white mb-2 leading-tight">
                     {event.title}
                   </h4>
 
                   <div className="flex items-center gap-3 mb-2">
                     <div className="flex items-center gap-1 text-[10px]">
-                      <span className="text-gray-400">Sentiment:</span>
-                      <span className={`font-semibold ${event.sentiment_label === 'positive' ? 'text-green-400' :
-                        event.sentiment_label === 'negative' ? 'text-red-400' : 'text-gray-400'
+                      <span className="text-gray-500 dark:text-gray-400">Sentiment:</span>
+                      <span className={`font-semibold ${event.sentiment_label === 'positive' ? 'text-green-600 dark:text-green-400' :
+                        event.sentiment_label === 'negative' ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'
                         }`}>
                         {event.sentiment_score >= 0 ? '+' : ''}{event.sentiment_score.toFixed(2)}
                       </span>
                     </div>
                     <div className="flex items-center gap-1 text-[10px]">
-                      <span className="text-gray-400">Impact:</span>
+                      <span className="text-gray-500 dark:text-gray-400">Impact:</span>
                       <span className="font-semibold text-[#00D09C]">
                         {(event.impact_score * 100).toFixed(0)}%
                       </span>
@@ -2388,9 +2388,9 @@ export default function TradingChart({
                   </div>
 
                   {event.price_change_pct !== null && event.price_change_pct !== undefined && (
-                    <div className="text-[10px] text-gray-400 mb-2">
-                      Price: <span className={`font-semibold ${event.price_change_pct > 0 ? 'text-green-400' :
-                        event.price_change_pct < 0 ? 'text-red-400' : 'text-gray-400'
+                    <div className="text-[10px] text-gray-500 dark:text-gray-400 mb-2">
+                      Price: <span className={`font-semibold ${event.price_change_pct > 0 ? 'text-green-600 dark:text-green-400' :
+                        event.price_change_pct < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'
                         }`}>
                         {event.price_change_pct > 0 ? '+' : ''}{event.price_change_pct.toFixed(2)}%
                       </span>

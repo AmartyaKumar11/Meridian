@@ -46,6 +46,13 @@ class PortfolioGenerator:
         prices_df = self.data_manager.fetch_history(tickers, start_date_hist, end_date_str)
         logger.info(f"[STAGE 2] Data fetched: {prices_df.shape} - {time.time() - stage_start:.2f}s")
         
+        # Validate data
+        if prices_df.empty or prices_df.shape[0] < 100:
+            raise ValueError(f"Insufficient data: got {prices_df.shape[0]} rows, need at least 100")
+        
+        if prices_df.shape[1] < 5:
+            raise ValueError(f"Insufficient tickers with data: got {prices_df.shape[1]}, need at least 5")
+        
         # 3. Estimate Parameters
         logger.info(f"[STAGE 3] Estimating expected returns and covariance...")
         stage_start = time.time()
@@ -72,7 +79,17 @@ class PortfolioGenerator:
         # 5. Post-Process (Allocation)
         logger.info(f"[STAGE 5] Processing allocations...")
         stage_start = time.time()
+        
+        # Safely get current prices
+        if prices_df.empty or len(prices_df) == 0:
+            raise ValueError("Price data is empty, cannot extract current prices")
+            
         current_prices = prices_df.iloc[-1].to_dict()
+        
+        # Validate current prices
+        if not current_prices or all(pd.isna(v) for v in current_prices.values()):
+            raise ValueError("No valid current prices available")
+            
         post_processor = PostProcessor(inputs.initial_capital, inputs.transaction_cost_pct)
         allocation_result = post_processor.process_weights(weights, current_prices)
         logger.info(f"[STAGE 5] Allocations processed - {time.time() - stage_start:.2f}s")
