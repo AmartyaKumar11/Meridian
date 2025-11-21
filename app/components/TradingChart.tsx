@@ -1388,7 +1388,16 @@ export default function TradingChart({
             if (activeClusterKeyRef.current !== dayKey) {
               activeClusterKeyRef.current = dayKey;
               setHoveredMarkerEvents(dayEvents);
-              setToastPosition({ x: param.point.x, y: param.point.y });
+
+              // Calculate screen coordinates with offset to prevent cursor overlap (flickering)
+              if (chartContainerRef.current) {
+                const rect = chartContainerRef.current.getBoundingClientRect();
+                setToastPosition({
+                  x: rect.left + param.point.x + 20, // 20px offset
+                  y: rect.top + param.point.y + 20   // 20px offset
+                });
+              }
+
               setShowNewsToast(true);
               setHoveredEvent(null);
               setTooltipPosition(null);
