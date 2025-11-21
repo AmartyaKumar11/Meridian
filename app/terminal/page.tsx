@@ -29,6 +29,29 @@ export default function Terminal() {
   const [selectedInterval, setSelectedInterval] = useState("1d");
   const [selectedStock, setSelectedStock] = useState("RELIANCE.NS");
   const [mounted, setMounted] = useState(false);
+  const [stocksWithNews, setStocksWithNews] = useState<Set<string>>(new Set());
+
+  // Fetch stocks with complete news data
+  useEffect(() => {
+    const fetchStocksWithNews = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/api/companies');
+        if (response.ok) {
+          const companies = await response.json();
+          // Create a set of stock names that have news data
+          const stockNames = new Set(companies.map((c: any) => c.name));
+          setStocksWithNews(stockNames);
+        }
+      } catch (error) {
+        console.debug('Could not fetch stocks with news data');
+      }
+    };
+
+    fetchStocksWithNews();
+    // Refresh every 5 minutes
+    const interval = setInterval(fetchStocksWithNews, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Load selected stock from localStorage after component mounts (client-side only)
   useEffect(() => {
@@ -1132,28 +1155,36 @@ export default function Terminal() {
 
             {/* Watchlist Stocks */}
             <div className="flex-1 overflow-y-auto scrollbar-hide">
-              {watchlistStocks.map((stock, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => setSelectedStock(stock.symbol)}
-                  className={`px-4 py-3 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-[#1F2228] cursor-pointer transition-colors ${
-                    selectedStock === stock.symbol ? 'bg-[#00D09C]/5' : ''
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="text-xs font-medium text-[#44475B] dark:text-white">{stock.name}</div>
-                      <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{stock.symbol}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xs font-semibold text-[#44475B] dark:text-white">{stock.price}</div>
-                      <div className={`text-[10px] ${stock.positive ? 'text-[#00D09C]' : 'text-red-500'}`}>
-                        {stock.change} {stock.percent}
+              {watchlistStocks.map((stock, idx) => {
+                const hasNewsData = stocksWithNews.has(stock.name);
+                return (
+                  <div
+                    key={idx}
+                    onClick={() => setSelectedStock(stock.symbol)}
+                    className={`px-4 py-3 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-[#1F2228] cursor-pointer transition-colors ${
+                      selectedStock === stock.symbol ? 'bg-[#00D09C]/5' : ''
+                    } ${hasNewsData ? 'border-l-2 border-l-[#00D09C] bg-[#00D09C]/5' : ''}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <div className="text-xs font-medium text-[#44475B] dark:text-white">{stock.name}</div>
+                          {hasNewsData && (
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#00D09C] animate-pulse" title="News data available"></div>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{stock.symbol}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs font-semibold text-[#44475B] dark:text-white">{stock.price}</div>
+                        <div className={`text-[10px] ${stock.positive ? 'text-[#00D09C]' : 'text-red-500'}`}>
+                          {stock.change} {stock.percent}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

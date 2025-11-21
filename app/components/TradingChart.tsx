@@ -49,6 +49,9 @@ export default function TradingChart({
   const [showNewsToast, setShowNewsToast] = useState(false);
   const [hoveredMarkerEvents, setHoveredMarkerEvents] = useState<any[]>([]);
   const [toastPosition, setToastPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [showNewsPanel, setShowNewsPanel] = useState(false);
+  const [newsPanelEvents, setNewsPanelEvents] = useState<any[]>([]);
+  const [selectedSentimentFilter, setSelectedSentimentFilter] = useState<string>('all');
   const eventsByDayRef = useRef<Map<number, any[]>>(new Map());
   const activeClusterKeyRef = useRef<number | null>(null);
   const allDataRef = useRef<any[]>([]);
@@ -73,6 +76,9 @@ export default function TradingChart({
     setTooltipPosition(null);
     setShowNewsToast(false);
     setHoveredMarkerEvents([]);
+    setShowNewsPanel(false);
+    setNewsPanelEvents([]);
+    setSelectedSentimentFilter('all');
     eventsByDayRef.current.clear();
     activeClusterKeyRef.current = null;
   }, [symbol]);
@@ -1375,12 +1381,11 @@ export default function TradingChart({
       }
     });
 
-    // Subscribe to crosshair move events
-    chart.subscribeCrosshairMove((param) => {
+    // Subscribe to click events for news markers
+    chart.subscribeClick((param) => {
       try {
-        // Check if hovering over a news marker
-        // Check if hovering over a news marker
-        if (param.time && eventsByDayRef.current.size > 0 && param.point) {
+        // Check if clicking on a news marker
+        if (param.time && eventsByDayRef.current.size > 0) {
           // Determine clustering period based on interval (MUST MATCH addNewsMarkersToChart)
           let clusterPeriod = 86400;
           if (interval === '5y' || interval === '10y') {
@@ -1389,49 +1394,26 @@ export default function TradingChart({
             clusterPeriod = 259200;
           }
 
-          const hoveredTime = param.time as number;
-          const dayKey = Math.floor(hoveredTime / clusterPeriod) * clusterPeriod;
+          const clickedTime = param.time as number;
+          const dayKey = Math.floor(clickedTime / clusterPeriod) * clusterPeriod;
 
           // Check if there are events for this day
           const dayEvents = eventsByDayRef.current.get(dayKey);
 
           if (dayEvents && dayEvents.length > 0) {
-            // Only update if we entered a NEW cluster
-            if (activeClusterKeyRef.current !== dayKey) {
-              activeClusterKeyRef.current = dayKey;
-              setHoveredMarkerEvents(dayEvents);
-
-              // Calculate screen coordinates with offset to prevent cursor overlap (flickering)
-              if (chartContainerRef.current) {
-                const rect = chartContainerRef.current.getBoundingClientRect();
-                setToastPosition({
-                  x: rect.left + param.point.x + 20, // 20px offset
-                  y: rect.top + param.point.y + 20   // 20px offset
-                });
-              }
-
-              setShowNewsToast(true);
-              setHoveredEvent(null);
-              setTooltipPosition(null);
-            }
-          } else {
-            // Only clear if we were previously showing something
-            if (activeClusterKeyRef.current !== null) {
-              activeClusterKeyRef.current = null;
-              setShowNewsToast(false);
-              setHoveredEvent(null);
-              setTooltipPosition(null);
-            }
-          }
-        } else {
-          // Only clear if we were previously showing something
-          if (activeClusterKeyRef.current !== null) {
-            activeClusterKeyRef.current = null;
-            setShowNewsToast(false);
-            setHoveredEvent(null);
-            setTooltipPosition(null);
+            console.log('📰 Clicked on news marker with', dayEvents.length, 'events');
+            setNewsPanelEvents(dayEvents);
+            setShowNewsPanel(true);
           }
         }
+      } catch (e) {
+        console.debug('Click event error (chart may be disposed):', e);
+      }
+    });
+
+    // Subscribe to crosshair move events
+    chart.subscribeCrosshairMove((param) => {
+      try {
 
         if (param.time && param.seriesData.size > 0 && onCrosshairMove) {
           const series = candlestickSeriesRef.current;
@@ -2282,6 +2264,157 @@ export default function TradingChart({
           position={toastPosition}
           onClose={() => setShowNewsToast(false)}
         />
+      )}
+
+      {/* News Panel - Shows on marker click */}
+      {showNewsPanel && newsPanelEvents.length > 0 && (
+        <div className="absolute top-16 right-4 z-40 w-96 max-h-[70vh] bg-[#1F2228] dark:bg-[#1F2228] rounded-lg shadow-2xl border border-gray-700 flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-[#00D09C]"></div>
+              <h3 className="text-sm font-semibold text-white">
+                News Events ({newsPanelEvents.length})
+              </h3>
+            </div>
+            <button
+              onClick={() => {
+                setShowNewsPanel(false);
+                setSelectedSentimentFilter('all');
+              }}
+              className="p-1 hover:bg-gray-700 rounded transition-colors"
+            >
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex gap-2 px-4 py-2 border-b border-gray-700">
+            <button 
+              onClick={() => setSelectedSentimentFilter('all')}
+              className={`px-3 py-1 text-xs font-medium rounded ${
+                selectedSentimentFilter === 'all' 
+                  ? 'bg-[#00D09C] text-white' 
+                  : 'text-gray-400 hover:bg-gray-700'
+              }`}
+            >
+              All ({newsPanelEvents.length})
+            </button>
+            <button 
+              onClick={() => setSelectedSentimentFilter('positive')}
+              className={`px-3 py-1 text-xs font-medium rounded ${
+                selectedSentimentFilter === 'positive'
+                  ? 'bg-green-600 text-white'
+                  : 'text-green-400 hover:bg-green-900/20'
+              }`}
+            >
+              Positive ({newsPanelEvents.filter(e => e.sentiment_label === 'positive').length})
+            </button>
+            <button 
+              onClick={() => setSelectedSentimentFilter('negative')}
+              className={`px-3 py-1 text-xs font-medium rounded ${
+                selectedSentimentFilter === 'negative'
+                  ? 'bg-red-600 text-white'
+                  : 'text-red-400 hover:bg-red-900/20'
+              }`}
+            >
+              Negative ({newsPanelEvents.filter(e => e.sentiment_label === 'negative').length})
+            </button>
+            <button 
+              onClick={() => setSelectedSentimentFilter('neutral')}
+              className={`px-3 py-1 text-xs font-medium rounded ${
+                selectedSentimentFilter === 'neutral'
+                  ? 'bg-gray-600 text-white'
+                  : 'text-gray-400 hover:bg-gray-700'
+              }`}
+            >
+              Neutral ({newsPanelEvents.filter(e => e.sentiment_label === 'neutral').length})
+            </button>
+          </div>
+
+          {/* News List - Scrollable */}
+          <div className="flex-1 overflow-y-auto px-3 py-2">
+            {newsPanelEvents
+              .filter(event => selectedSentimentFilter === 'all' || event.sentiment_label === selectedSentimentFilter)
+              .sort((a, b) => b.impact_score - a.impact_score)
+              .map((event, idx) => (
+                <div
+                  key={idx}
+                  className="mb-3 pb-3 border-b border-gray-700 last:border-0 hover:bg-gray-800/30 rounded p-2 transition-colors"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${
+                        event.sentiment_label === 'positive'
+                          ? 'bg-green-900/30 text-green-400'
+                          : event.sentiment_label === 'negative'
+                            ? 'bg-red-900/30 text-red-400'
+                            : 'bg-gray-700 text-gray-300'
+                      }`}
+                    >
+                      {event.sentiment_label || 'NEUTRAL'}
+                    </span>
+                    <span className="text-[10px] text-gray-400">
+                      {new Date(
+                        typeof event.timestamp === 'string'
+                          ? event.timestamp
+                          : event.timestamp * 1000
+                      ).toLocaleDateString()}
+                    </span>
+                  </div>
+
+                  <h4 className="text-xs font-medium text-white mb-2 leading-tight">
+                    {event.title}
+                  </h4>
+
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="flex items-center gap-1 text-[10px]">
+                      <span className="text-gray-400">Sentiment:</span>
+                      <span className={`font-semibold ${
+                        event.sentiment_label === 'positive' ? 'text-green-400' :
+                        event.sentiment_label === 'negative' ? 'text-red-400' : 'text-gray-400'
+                      }`}>
+                        {(event.sentiment_score * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 text-[10px]">
+                      <span className="text-gray-400">Impact:</span>
+                      <span className="font-semibold text-[#00D09C]">
+                        {(event.impact_score * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                  </div>
+
+                  {event.price_change_pct !== null && event.price_change_pct !== undefined && (
+                    <div className="text-[10px] text-gray-400 mb-2">
+                      Price: <span className={`font-semibold ${
+                        event.price_change_pct > 0 ? 'text-green-400' :
+                        event.price_change_pct < 0 ? 'text-red-400' : 'text-gray-400'
+                      }`}>
+                        {event.price_change_pct > 0 ? '+' : ''}{event.price_change_pct.toFixed(2)}%
+                      </span>
+                    </div>
+                  )}
+
+                  {event.url && (
+                    <a
+                      href={event.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[10px] text-[#00D09C] hover:text-[#00B386] font-medium inline-flex items-center gap-1"
+                    >
+                      Read
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </a>
+                  )}
+                </div>
+              ))}
+          </div>
+        </div>
       )}
     </div>
   );
