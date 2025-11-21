@@ -11,7 +11,7 @@ import {
   TrendingDown, Maximize2, Activity, Eye,
   Lock, Trash2, Grid, BarChart3, List,
   ChevronRight, ChevronLeft, Pencil, FileBarChart, CreditCard,
-  Target, Slash, Heart, Brush, Zap, Move
+  Target, Slash, Heart, Brush, Zap, Move, Lightbulb
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -55,6 +55,12 @@ export default function Terminal() {
   const [activeIndicators, setActiveIndicators] = useState<string[]>([]);
   const [searchIndicator, setSearchIndicator] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  
+  // News Insights states
+  const [insightsMode, setInsightsMode] = useState(false);
+  const [insightsStartDate, setInsightsStartDate] = useState<number | null>(null);
+  const [insightsEndDate, setInsightsEndDate] = useState<number | null>(null);
+  
   const [ohlcData, setOhlcData] = useState<{
     open: number;
     high: number;
@@ -181,8 +187,26 @@ export default function Terminal() {
     router.push('/');
   };
 
-  // Handle chart click for date selection (works independently or with Portfolio Generator)
+  // Handle chart click for date selection (works independently or with Portfolio Generator OR News Insights)
   const handleChartClick = (timestamp: number) => {
+    // Handle insights mode
+    if (insightsMode) {
+      if (!insightsStartDate) {
+        setInsightsStartDate(timestamp);
+        console.log('💡 Insights start date set:', new Date(timestamp * 1000));
+      } else if (!insightsEndDate) {
+        setInsightsEndDate(timestamp);
+        console.log('💡 Insights end date set:', new Date(timestamp * 1000));
+      } else {
+        // If both are set, reset and start over
+        setInsightsStartDate(timestamp);
+        setInsightsEndDate(null);
+        console.log('💡 Insights reset - Start date set:', new Date(timestamp * 1000));
+      }
+      return;
+    }
+    
+    // Handle portfolio date selection
     if (!chartSelectedStart) {
       setChartSelectedStart(timestamp);
       console.log('📅 Start date set:', new Date(timestamp * 1000));
@@ -199,6 +223,13 @@ export default function Terminal() {
 
   // Handle right-click to clear chart date selection
   const handleChartRightClick = () => {
+    if (insightsMode) {
+      setInsightsStartDate(null);
+      setInsightsEndDate(null);
+      console.log('🔄 Insights selection cleared');
+      return;
+    }
+    
     setChartSelectedStart(null);
     setChartSelectedEnd(null);
     console.log('🔄 Date selection cleared');
@@ -946,6 +977,24 @@ export default function Terminal() {
               <button className="px-4 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded">
                 S
               </button>
+              <button 
+                onClick={() => {
+                  setInsightsMode(!insightsMode);
+                  if (insightsMode) {
+                    // Clear insights when toggling off
+                    setInsightsStartDate(null);
+                    setInsightsEndDate(null);
+                  }
+                }}
+                className={`p-1.5 rounded-md transition-colors ${
+                  insightsMode 
+                    ? 'bg-[#00D09C] text-white hover:bg-[#00B386]' 
+                    : 'hover:bg-gray-100 dark:hover:bg-[#1F2228]'
+                }`}
+                title="News Insights - Select period to view important news"
+              >
+                <Lightbulb className={`w-4 h-4 ${insightsMode ? 'text-white' : 'text-gray-600 dark:text-gray-400'}`} />
+              </button>
               <button className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#1F2228]">
                 <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
               </button>
@@ -1014,9 +1063,9 @@ export default function Terminal() {
               activeIndicators={activeIndicators}
               onChartClick={handleChartClick}
               onChartRightClick={handleChartRightClick}
-              chartDateSelectionMode={dateSelectionMode === "chart" && isPortfolioSidebarOpen}
-              selectedStartDate={chartSelectedStart}
-              selectedEndDate={chartSelectedEnd}
+              chartDateSelectionMode={(dateSelectionMode === "chart" && isPortfolioSidebarOpen) || insightsMode}
+              selectedStartDate={insightsMode ? insightsStartDate : chartSelectedStart}
+              selectedEndDate={insightsMode ? insightsEndDate : chartSelectedEnd}
               refreshTrigger={refreshTrigger}
             />
 

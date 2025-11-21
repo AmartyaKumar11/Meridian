@@ -279,24 +279,40 @@ def run_pipeline(
             logger.info(f"Processing: {company}")
             logger.info(f"{'=' * 60}")
             
-            # Fetch news from GDELT
+            # Convert ticker to company name for GDELT search
+            company_name = company
+            ticker_symbol = company
+            
+            # If it's a ticker (ends with .NS), convert to company name
+            if company.endswith('.NS') or company.endswith('.BO'):
+                ticker_symbol = company
+                # Try to get company name from ticker
+                from ingestion.news_ingestor import TICKER_TO_COMPANY
+                company_name = TICKER_TO_COMPANY.get(company, company.replace('.NS', '').replace('.BO', ''))
+                logger.info(f"Converted ticker {ticker_symbol} to company name: {company_name}")
+            
+            # Fetch news from GDELT using company name
             news_df = fetch_gdelt_news(
-                company=company,
+                company=company_name,
                 start_date=start_date,
                 end_date=end_date,
                 max_records=max_records
             )
             
             if news_df.empty:
-                logger.warning(f"No news found for {company}. Skipping.")
+                logger.warning(f"No news found for {company_name}. Skipping.")
                 continue
             
             # Optionally enrich with price data
             if with_prices:
-                logger.info(f"Fetching stock prices for {company}...")
+                logger.info(f"Fetching stock prices for {ticker_symbol}...")
                 
-                # Convert company name to ticker symbol
-                ticker = get_ticker_for_company(company)
+                # Use the ticker we already have, or convert company name to ticker
+                if ticker_symbol.endswith('.NS') or ticker_symbol.endswith('.BO'):
+                    ticker = ticker_symbol
+                else:
+                    ticker = get_ticker_for_company(company_name)
+                    
                 logger.info(f"Using ticker: {ticker}")
                 
                 # Convert date format for yfinance (YYYYMMDD -> YYYY-MM-DD)
@@ -311,6 +327,9 @@ def run_pipeline(
                 else:
                     logger.warning(f"No price data found for {ticker}")
             
+            # Store the ticker in the news dataframe for reference
+            news_df['ticker'] = ticker_symbol
+            
             # Index into Elasticsearch
             result = index_dataframe(
                 es=es,
@@ -324,7 +343,7 @@ def run_pipeline(
             total_docs_failed += result["failed"]
             companies_processed += 1
             
-            logger.info(f"✓ {company}: {result['success']} docs indexed")
+            logger.info(f"✓ {company_name} ({ticker_symbol}): {result['success']} docs indexed")
             
             # Rate limiting between companies
             time.sleep(1)

@@ -26,6 +26,59 @@ import torch
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Nifty 50 ticker to company name mapping
+TICKER_TO_COMPANY = {
+    'RELIANCE.NS': 'Reliance Industries',
+    'TCS.NS': 'Tata Consultancy Services',
+    'HDFCBANK.NS': 'HDFC Bank',
+    'INFY.NS': 'Infosys',
+    'ICICIBANK.NS': 'ICICI Bank',
+    'HINDUNILVR.NS': 'Hindustan Unilever',
+    'BHARTIARTL.NS': 'Bharti Airtel',
+    'ITC.NS': 'ITC Limited',
+    'SBIN.NS': 'State Bank of India',
+    'LT.NS': 'Larsen & Toubro',
+    'BAJFINANCE.NS': 'Bajaj Finance',
+    'HCLTECH.NS': 'HCL Technologies',
+    'KOTAKBANK.NS': 'Kotak Mahindra Bank',
+    'ASIANPAINT.NS': 'Asian Paints',
+    'MARUTI.NS': 'Maruti Suzuki',
+    'AXISBANK.NS': 'Axis Bank',
+    'TITAN.NS': 'Titan Company',
+    'SUNPHARMA.NS': 'Sun Pharmaceutical',
+    'ULTRACEMCO.NS': 'UltraTech Cement',
+    'NESTLEIND.NS': 'Nestle India',
+    'WIPRO.NS': 'Wipro',
+    'ADANIENT.NS': 'Adani Enterprises',
+    'TATAMOTORS.NS': 'Tata Motors',
+    'ONGC.NS': 'Oil and Natural Gas Corporation',
+    'NTPC.NS': 'NTPC Limited',
+    'POWERGRID.NS': 'Power Grid Corporation',
+    'M&M.NS': 'Mahindra & Mahindra',
+    'JSWSTEEL.NS': 'JSW Steel',
+    'ADANIPORTS.NS': 'Adani Ports',
+    'TATASTEEL.NS': 'Tata Steel',
+    'INDUSINDBK.NS': 'IndusInd Bank',
+    'COALINDIA.NS': 'Coal India',
+    'BAJAJFINSV.NS': 'Bajaj Finserv',
+    'TECHM.NS': 'Tech Mahindra',
+    'HINDALCO.NS': 'Hindalco Industries',
+    'DRREDDY.NS': 'Dr. Reddy\'s Laboratories',
+    'EICHERMOT.NS': 'Eicher Motors',
+    'GRASIM.NS': 'Grasim Industries',
+    'CIPLA.NS': 'Cipla',
+    'APOLLOHOSP.NS': 'Apollo Hospitals',
+    'DIVISLAB.NS': 'Divi\'s Laboratories',
+    'HEROMOTOCO.NS': 'Hero MotoCorp',
+    'BRITANNIA.NS': 'Britannia Industries',
+    'BPCL.NS': 'Bharat Petroleum',
+    'TATACONSUM.NS': 'Tata Consumer Products',
+    'SHRIRAMFIN.NS': 'Shriram Finance',
+    'SBILIFE.NS': 'SBI Life Insurance',
+    'ADANIGREEN.NS': 'Adani Green Energy',
+    'LTIM.NS': 'LTIMindtree'
+}
+
 # Load FinBERT model at module import for efficient reuse
 # Fallback to simple rule-based sentiment if model loading fails
 try:
@@ -164,6 +217,9 @@ def fetch_gdelt_news(
             response = requests.get(base_url, params=params, timeout=30)
             response.raise_for_status()
             
+            # Set encoding explicitly to handle special characters
+            response.encoding = 'utf-8'
+            
             data = response.json()
             
             if "articles" not in data or not data["articles"]:
@@ -176,8 +232,16 @@ def fetch_gdelt_news(
             # Extract relevant fields
             records = []
             for article in articles:
+                # Clean text fields to avoid encoding issues
+                title = article.get("title", "")
+                try:
+                    # Attempt to encode/decode to catch encoding issues early
+                    title = title.encode('utf-8', errors='ignore').decode('utf-8')
+                except:
+                    title = ""
+                
                 record = {
-                    "title": article.get("title", ""),
+                    "title": title,
                     "url": article.get("url", ""),
                     "sourceCountry": article.get("sourcecountry", ""),
                     "seendate": article.get("seendate", ""),

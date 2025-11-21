@@ -65,6 +65,18 @@ export default function TradingChart({
     console.log('🔄 Active indicators updated:', activeIndicators);
   }, [activeIndicators]);
 
+  // Clear news events and tooltips when symbol changes
+  useEffect(() => {
+    console.log('📰 Symbol changed, clearing news events and tooltips');
+    setNewsEvents([]);
+    setHoveredEvent(null);
+    setTooltipPosition(null);
+    setShowNewsToast(false);
+    setHoveredMarkerEvents([]);
+    eventsByDayRef.current.clear();
+    activeClusterKeyRef.current = null;
+  }, [symbol]);
+
   // Define which indicators need separate panes
   const separatePaneIndicators = [
     'rsi', 'macd', 'stochastic', 'cci', 'momentum', 'williams',

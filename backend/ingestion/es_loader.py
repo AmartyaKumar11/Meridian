@@ -43,6 +43,18 @@ def prepare_doc(row: pd.Series) -> Dict:
             return value.isoformat()
         return str(value)
     
+    # Helper to safely extract scalar numeric values
+    def safe_float(value):
+        if value is None or pd.isna(value):
+            return None
+        try:
+            # Handle numpy/pandas scalar types that might cause "ambiguous truth value" errors
+            if hasattr(value, 'item'):
+                return float(value.item())
+            return float(value)
+        except (ValueError, TypeError):
+            return None
+    
     doc = {
         "title": str(row.get("title", "")),
         "url": str(row.get("url", "")),
@@ -53,17 +65,17 @@ def prepare_doc(row: pd.Series) -> Dict:
         "language": str(row.get("language", "")),
         "fetched_at": to_iso(row.get("fetched_at")) or datetime.now().isoformat(),
         "sentiment_label": str(row.get("sentiment_label", "neutral")),
-        "sentiment_score": float(row.get("sentiment_score", 0.5)) if pd.notna(row.get("sentiment_score")) else 0.5,
+        "sentiment_score": safe_float(row.get("sentiment_score")) or 0.5,
         "summary": str(row.get("summary", "")) if pd.notna(row.get("summary")) else "",
-        "keywords": list(row.get("keywords", [])) if pd.notna(row.get("keywords")) and isinstance(row.get("keywords"), list) and len(row.get("keywords", [])) > 0 else [],
-        "related_entities": list(row.get("related_entities", [])) if pd.notna(row.get("related_entities")) and isinstance(row.get("related_entities"), list) and len(row.get("related_entities", [])) > 0 else [],
-        "price_before": float(row.get("price_before")) if pd.notna(row.get("price_before")) else None,
-        "price_after": float(row.get("price_after")) if pd.notna(row.get("price_after")) else None,
-        "price_change_pct": float(row.get("price_change_pct")) if pd.notna(row.get("price_change_pct")) else None,
-        "volume_before": float(row.get("volume_before")) if pd.notna(row.get("volume_before")) else None,
-        "volume_after": float(row.get("volume_after")) if pd.notna(row.get("volume_after")) else None,
-        "volatility_change": float(row.get("volatility_change")) if pd.notna(row.get("volatility_change")) else None,
-        "impact_score": float(row.get("impact_score", 0.0)) if pd.notna(row.get("impact_score")) else 0.0
+        "keywords": list(row.get("keywords", [])) if isinstance(row.get("keywords"), list) else [],
+        "related_entities": list(row.get("related_entities", [])) if isinstance(row.get("related_entities"), list) else [],
+        "price_before": safe_float(row.get("price_before")),
+        "price_after": safe_float(row.get("price_after")),
+        "price_change_pct": safe_float(row.get("price_change_pct")),
+        "volume_before": safe_float(row.get("volume_before")),
+        "volume_after": safe_float(row.get("volume_after")),
+        "volatility_change": safe_float(row.get("volatility_change")),
+        "impact_score": safe_float(row.get("impact_score")) or 0.0
     }
     
     # Generate document ID from URL hash (for deduplication)
