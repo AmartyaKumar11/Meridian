@@ -6,13 +6,48 @@ import {
   ArrowLeft, 
   CheckCircle2, 
   Circle,
-  ChevronRight 
+  ChevronRight,
+  Calendar,
+  TrendingUp,
+  Target,
+  Clock,
+  DollarSign,
+  Percent,
+  Building2,
+  Sliders,
+  Receipt,
+  BarChart3,
+  RefreshCw,
+  Info
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function PortfolioAgentPage() {
   const router = useRouter();
   const [currentStage, setCurrentStage] = useState(0);
+  
+  // User Input State
+  const [userInputs, setUserInputs] = useState({
+    dateSelectionMode: "manual" as "manual" | "chart",
+    startDate: "",
+    endDate: "",
+    riskAppetite: "Moderate" as "Conservative" | "Moderate" | "Aggressive",
+    targetReturn: 15,
+    investmentHorizon: 5,
+    initialCapital: 100000,
+    inflationRate: 6,
+    stockUniverse: "NIFTY50" as "NIFTY50" | "NIFTY500" | "CUSTOM",
+    customTickers: [] as string[],
+    sectorsInclude: [] as string[],
+    sectorsExclude: [] as string[],
+    minStocks: 8,
+    maxStocks: 15,
+    diversificationPref: "Balanced" as "High" | "Balanced" | "Concentrated",
+    transactionCostPct: 0.1,
+    benchmarkIndex: "NIFTY50" as "NIFTY50" | "SENSEX" | "NIFTY500",
+    optimizationMode: "max_sharpe" as "max_sharpe" | "min_volatility" | "risk_parity" | "target_return" | "cvar",
+    rebalancingFreq: "Quarterly" as "Monthly" | "Quarterly" | "Annually" | "None"
+  });
 
   const stages = [
     { id: 0, name: "Welcome", icon: FileBarChart },
@@ -109,7 +144,14 @@ export default function PortfolioAgentPage() {
         {/* Content Area */}
         <div className="bg-white dark:bg-[#1A1D24] rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 min-h-[600px]">
           {currentStage === 0 && <WelcomeStage onNext={() => setCurrentStage(1)} />}
-          {currentStage === 1 && <div className="p-8">User Inputs Stage - Coming Soon</div>}
+          {currentStage === 1 && (
+            <UserInputsStage 
+              inputs={userInputs} 
+              setInputs={setUserInputs}
+              onNext={() => setCurrentStage(2)}
+              onBack={() => setCurrentStage(0)}
+            />
+          )}
           {currentStage === 2 && <div className="p-8">Data Ingestion Stage - Coming Soon</div>}
           {/* Add other stages here */}
         </div>
