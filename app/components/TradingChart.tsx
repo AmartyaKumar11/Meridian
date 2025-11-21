@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createChart, ColorType } from 'lightweight-charts';
 import { useTheme } from '../context/ThemeContext';
 import IndicatorPane from './IndicatorPane';
-import { getCompanyNameFromSymbol } from '../utils/stockToCompanyMapping';
+import { getCompanyNameFromSymbol, stockToCompanyMapping } from '../utils/stockToCompanyMapping';
 import NewsToast from './NewsToast';
 
 interface TradingChartProps {
@@ -996,7 +996,8 @@ export default function TradingChart({
       const companyName = getCompanyNameFromSymbol(symbol);
 
       if (!companyName) {
-        console.debug('No company mapping found for symbol:', symbol);
+        console.warn('⚠️ No company mapping found for symbol:', symbol, '- News markers will not be shown');
+        console.log('Available mappings:', Object.keys(stockToCompanyMapping));
         setNewsEvents([]);
         return;
       }
@@ -1005,13 +1006,16 @@ export default function TradingChart({
 
       // Use environment variable or default to localhost:8000
       const apiUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+      const url = `${apiUrl}/api/chart-events/${encodeURIComponent(companyName)}`;
+      console.log('📡 News API URL:', url);
+
       // Fetch all events for now (impact scores will be calculated later)
-      const response = await fetch(`${apiUrl}/api/chart-events/${encodeURIComponent(companyName)}`, {
+      const response = await fetch(url, {
         signal: AbortSignal.timeout(5000) // 5 second timeout
       });
 
       if (!response.ok) {
-        console.warn('Failed to fetch news events:', response.status);
+        console.warn('❌ Failed to fetch news events:', response.status, response.statusText);
         return;
       }
 
@@ -1025,12 +1029,14 @@ export default function TradingChart({
         console.log('ℹ️ No news events found for', companyName);
         setNewsEvents([]);
       }
-    } catch (error) {
+    } catch (error: any) {
       // Silently fail if backend is not available - news markers are optional
-      if (error.name === 'AbortError') {
-        console.debug('News events fetch timeout - backend may not be running');
+      if (error?.name === 'AbortError') {
+        console.warn('⏱️ News events fetch timeout - backend may not be running');
+      } else if (error?.message?.includes('fetch')) {
+        console.warn('🔌 Cannot connect to backend for news events - is it running on localhost:8000?');
       } else {
-        console.debug('News events not available - backend may not be running');
+        console.warn('❌ Error fetching news events:', error?.message || error);
       }
       setNewsEvents([]);
     }
@@ -2292,43 +2298,39 @@ export default function TradingChart({
 
           {/* Tabs */}
           <div className="flex gap-2 px-4 py-2 border-b border-gray-700">
-            <button 
+            <button
               onClick={() => setSelectedSentimentFilter('all')}
-              className={`px-3 py-1 text-xs font-medium rounded ${
-                selectedSentimentFilter === 'all' 
-                  ? 'bg-[#00D09C] text-white' 
-                  : 'text-gray-400 hover:bg-gray-700'
-              }`}
+              className={`px-3 py-1 text-xs font-medium rounded ${selectedSentimentFilter === 'all'
+                ? 'bg-[#00D09C] text-white'
+                : 'text-gray-400 hover:bg-gray-700'
+                }`}
             >
               All ({newsPanelEvents.length})
             </button>
-            <button 
+            <button
               onClick={() => setSelectedSentimentFilter('positive')}
-              className={`px-3 py-1 text-xs font-medium rounded ${
-                selectedSentimentFilter === 'positive'
-                  ? 'bg-green-600 text-white'
-                  : 'text-green-400 hover:bg-green-900/20'
-              }`}
+              className={`px-3 py-1 text-xs font-medium rounded ${selectedSentimentFilter === 'positive'
+                ? 'bg-green-600 text-white'
+                : 'text-green-400 hover:bg-green-900/20'
+                }`}
             >
               Positive ({newsPanelEvents.filter(e => e.sentiment_label === 'positive').length})
             </button>
-            <button 
+            <button
               onClick={() => setSelectedSentimentFilter('negative')}
-              className={`px-3 py-1 text-xs font-medium rounded ${
-                selectedSentimentFilter === 'negative'
-                  ? 'bg-red-600 text-white'
-                  : 'text-red-400 hover:bg-red-900/20'
-              }`}
+              className={`px-3 py-1 text-xs font-medium rounded ${selectedSentimentFilter === 'negative'
+                ? 'bg-red-600 text-white'
+                : 'text-red-400 hover:bg-red-900/20'
+                }`}
             >
               Negative ({newsPanelEvents.filter(e => e.sentiment_label === 'negative').length})
             </button>
-            <button 
+            <button
               onClick={() => setSelectedSentimentFilter('neutral')}
-              className={`px-3 py-1 text-xs font-medium rounded ${
-                selectedSentimentFilter === 'neutral'
-                  ? 'bg-gray-600 text-white'
-                  : 'text-gray-400 hover:bg-gray-700'
-              }`}
+              className={`px-3 py-1 text-xs font-medium rounded ${selectedSentimentFilter === 'neutral'
+                ? 'bg-gray-600 text-white'
+                : 'text-gray-400 hover:bg-gray-700'
+                }`}
             >
               Neutral ({newsPanelEvents.filter(e => e.sentiment_label === 'neutral').length})
             </button>
@@ -2346,13 +2348,12 @@ export default function TradingChart({
                 >
                   <div className="flex items-center gap-2 mb-2">
                     <span
-                      className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${
-                        event.sentiment_label === 'positive'
-                          ? 'bg-green-900/30 text-green-400'
-                          : event.sentiment_label === 'negative'
-                            ? 'bg-red-900/30 text-red-400'
-                            : 'bg-gray-700 text-gray-300'
-                      }`}
+                      className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${event.sentiment_label === 'positive'
+                        ? 'bg-green-900/30 text-green-400'
+                        : event.sentiment_label === 'negative'
+                          ? 'bg-red-900/30 text-red-400'
+                          : 'bg-gray-700 text-gray-300'
+                        }`}
                     >
                       {event.sentiment_label || 'NEUTRAL'}
                     </span>
@@ -2372,10 +2373,9 @@ export default function TradingChart({
                   <div className="flex items-center gap-3 mb-2">
                     <div className="flex items-center gap-1 text-[10px]">
                       <span className="text-gray-400">Sentiment:</span>
-                      <span className={`font-semibold ${
-                        event.sentiment_label === 'positive' ? 'text-green-400' :
+                      <span className={`font-semibold ${event.sentiment_label === 'positive' ? 'text-green-400' :
                         event.sentiment_label === 'negative' ? 'text-red-400' : 'text-gray-400'
-                      }`}>
+                        }`}>
                         {event.sentiment_score >= 0 ? '+' : ''}{event.sentiment_score.toFixed(2)}
                       </span>
                     </div>
@@ -2389,10 +2389,9 @@ export default function TradingChart({
 
                   {event.price_change_pct !== null && event.price_change_pct !== undefined && (
                     <div className="text-[10px] text-gray-400 mb-2">
-                      Price: <span className={`font-semibold ${
-                        event.price_change_pct > 0 ? 'text-green-400' :
+                      Price: <span className={`font-semibold ${event.price_change_pct > 0 ? 'text-green-400' :
                         event.price_change_pct < 0 ? 'text-red-400' : 'text-gray-400'
-                      }`}>
+                        }`}>
                         {event.price_change_pct > 0 ? '+' : ''}{event.price_change_pct.toFixed(2)}%
                       </span>
                     </div>

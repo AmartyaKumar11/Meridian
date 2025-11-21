@@ -137,6 +137,11 @@ export default function PortfolioAgent() {
 
     const portfolio = PORTFOLIOS[selectedPortfolio];
 
+    // Stocks with historical news data available
+    const stocksWithNews = ["RELIANCE", "INFY", "TCS", "HDFCBANK", "ICICIBANK", "KOTAKBANK", "ITC", "HINDUNILVR"];
+
+    const hasNewsData = (ticker: string) => stocksWithNews.includes(ticker);
+
     const handleDownloadPDF = async () => {
         if (!contentRef.current) return;
 
@@ -351,7 +356,13 @@ export default function PortfolioAgent() {
                                     </thead>
                                     <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                                         {portfolio.holdings.map((stock, idx) => (
-                                            <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-[#131722] transition-colors">
+                                            <tr
+                                                key={idx}
+                                                className={`transition-colors ${hasNewsData(stock.ticker)
+                                                        ? "bg-blue-50/30 dark:bg-blue-900/10 hover:bg-blue-50/50 dark:hover:bg-blue-900/20"
+                                                        : "hover:bg-gray-50 dark:hover:bg-[#131722]"
+                                                    }`}
+                                            >
                                                 <td className="px-5 py-2.5 font-medium text-[#44475B] dark:text-white">{stock.ticker}</td>
                                                 <td className="px-5 py-2.5 text-gray-600 dark:text-gray-300">{stock.name}</td>
                                                 <td className="px-5 py-2.5 text-right">

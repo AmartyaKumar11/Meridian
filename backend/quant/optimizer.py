@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, Tuple, List
 
 class PortfolioOptimizer:
     def __init__(self, expected_returns: pd.Series, cov_matrix: pd.DataFrame, risk_free_rate: float = 0.07):
