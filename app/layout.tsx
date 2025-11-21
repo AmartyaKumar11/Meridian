@@ -31,6 +31,15 @@ export default function RootLayout({
                   document.documentElement.classList.add('dark');
                 }
               } catch (e) {}
+              
+              // Suppress html2canvas color parsing warnings
+              const originalWarn = console.warn;
+              console.warn = function(...args) {
+                if (args[0]?.includes?.('Attempting to parse an unsupported color')) {
+                  return;
+                }
+                originalWarn.apply(console, args);
+              };
             `,
           }}
         />

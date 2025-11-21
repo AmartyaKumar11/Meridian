@@ -31,6 +31,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from ingestion.elastic_client import get_es_client
 from cache.redis_client import get_redis_client
+from core.input_schema import PortfolioInput
+from core.generator import PortfolioGenerator
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -648,3 +650,29 @@ async def get_sentiment_distribution(
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+# -----------------------------------------------------------------------------
+# Portfolio Agent Endpoints
+# -----------------------------------------------------------------------------
+
+@app.post("/api/portfolio/generate")
+async def generate_portfolio(input_data: PortfolioInput):
+    """
+    Generate an optimized portfolio based on user inputs.
+    """
+    try:
+        # Initialize generator
+        generator = PortfolioGenerator()
+        
+        # Run generation process
+        # Note: This is a CPU intensive task, in production this should be 
+        # offloaded to a background worker (Celery/RQ). 
+        # For this demo, we run it synchronously (or could use run_in_executor).
+        result = generator.generate_portfolio(input_data)
+        
+        return result
+    except Exception as e:
+        # Log the full error for debugging
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Portfolio generation failed: {str(e)}")

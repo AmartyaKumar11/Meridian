@@ -3,10 +3,10 @@
 
 "use client";
 
-import { 
+import {
   Search, Bell, User, Moon, Sun, LogOut,
-  Plus, Minus, TrendingUp, Undo2, Redo2, 
-  Settings, Camera, Share2, X, PenTool, 
+  Plus, Minus, TrendingUp, Undo2, Redo2,
+  Settings, Camera, Share2, X, PenTool,
   Mouse, Type, Circle, Square, Triangle,
   TrendingDown, Maximize2, Activity, Eye,
   Lock, Trash2, Grid, BarChart3, List,
@@ -78,12 +78,12 @@ export default function Terminal() {
   const [activeIndicators, setActiveIndicators] = useState<string[]>([]);
   const [searchIndicator, setSearchIndicator] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  
+
   // News Insights states
   const [insightsMode, setInsightsMode] = useState(false);
   const [insightsStartDate, setInsightsStartDate] = useState<number | null>(null);
   const [insightsEndDate, setInsightsEndDate] = useState<number | null>(null);
-  
+
   const [ohlcData, setOhlcData] = useState<{
     open: number;
     high: number;
@@ -93,7 +93,7 @@ export default function Terminal() {
     changePercent: number;
     isBullish: boolean;
   } | null>(null);
-  
+
   // Portfolio Generator states
   const [portfolioStartDate, setPortfolioStartDate] = useState("");
   const [portfolioEndDate, setPortfolioEndDate] = useState("");
@@ -111,7 +111,7 @@ export default function Terminal() {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartY, setDragStartY] = useState(0);
   const [dragStartHeight, setDragStartHeight] = useState(40);
-  
+
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
 
@@ -134,12 +134,12 @@ export default function Terminal() {
   useEffect(() => {
     const handleDragMove = (e: MouseEvent) => {
       if (!isDragging) return;
-      
+
       const deltaY = dragStartY - e.clientY;
       const windowHeight = window.innerHeight;
       const deltaVh = (deltaY / windowHeight) * 100;
       const newHeight = Math.max(20, Math.min(80, dragStartHeight + deltaVh));
-      
+
       setPortfolioSidebarHeight(newHeight);
     };
 
@@ -159,8 +159,8 @@ export default function Terminal() {
   }, [isDragging, dragStartY, dragStartHeight]);
 
   const toggleIndicator = (indicatorId: string) => {
-    setActiveIndicators(prev => 
-      prev.includes(indicatorId) 
+    setActiveIndicators(prev =>
+      prev.includes(indicatorId)
         ? prev.filter(id => id !== indicatorId)
         : [...prev, indicatorId]
     );
@@ -173,7 +173,7 @@ export default function Terminal() {
 
   const getFilteredIndicators = () => {
     if (searchIndicator) {
-      return technicalIndicators.filter(ind => 
+      return technicalIndicators.filter(ind =>
         ind.name.toLowerCase().includes(searchIndicator.toLowerCase())
       );
     }
@@ -183,11 +183,11 @@ export default function Terminal() {
   const handleCrosshairMove = (data: { open: number; high: number; low: number; close: number }) => {
     // Determine if candle is bullish (green) or bearish (red)
     const isBullish = data.close >= data.open;
-    
+
     // Calculate change and percentage based on open vs close of this candle
     const change = data.close - data.open;
     const changePercent = data.open !== 0 ? (change / data.open) * 100 : 0;
-    
+
     console.log('📍 Crosshair OHLC:', {
       open: data.open,
       high: data.high,
@@ -197,7 +197,7 @@ export default function Terminal() {
       changePercent: changePercent.toFixed(2) + '%',
       isBullish
     });
-    
+
     setOhlcData({
       ...data,
       change: isNaN(change) ? 0 : change,
@@ -228,7 +228,7 @@ export default function Terminal() {
       }
       return;
     }
-    
+
     // Handle portfolio date selection
     if (!chartSelectedStart) {
       setChartSelectedStart(timestamp);
@@ -252,7 +252,7 @@ export default function Terminal() {
       console.log('🔄 Insights selection cleared');
       return;
     }
-    
+
     setChartSelectedStart(null);
     setChartSelectedEnd(null);
     console.log('🔄 Date selection cleared');
@@ -478,7 +478,7 @@ export default function Terminal() {
     { name: "Nifty IT", symbol: "^CNXIT", price: "₹42,156.80", change: "+234.50", percent: "(0.56%)", positive: true },
     { name: "Nifty Midcap 50", symbol: "^NSEMDCP50", price: "₹13,464.15", change: "+33.40", percent: "(0.25%)", positive: true },
     { name: "Fin Nifty", symbol: "^CNXFIN", price: "₹27,377.90", change: "-209.75", percent: "(0.76%)", positive: false },
-    
+
     // NIFTY 50 Stocks
     { name: "Adani Enterprises", symbol: "ADANIENT.NS", price: "₹2,678.90", change: "+34.50", percent: "(1.31%)", positive: true },
     { name: "Adani Ports", symbol: "ADANIPORTS.NS", price: "₹1,234.50", change: "+18.20", percent: "(1.50%)", positive: true },
@@ -544,721 +544,714 @@ export default function Terminal() {
     <div>
       <PageTransition>
         <div className="h-screen flex flex-col bg-[#F8F9FA] dark:bg-[#0C0E12] transition-colors duration-300 overflow-hidden">
-      {/* Top Navigation */}
-      <nav className="bg-white/80 dark:bg-[#1A1D24]/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 z-50 transition-colors duration-300">
-        <div className="max-w-full mx-auto px-6 py-2">
-          <div className="flex items-center justify-between">
-            {/* Left - Logo */}
-            <div className="flex items-center space-x-2">
-              <div className="w-9 h-9 bg-gradient-to-br from-[#00D09C] to-[#00B386] rounded-full"></div>
-              <span className="text-base font-semibold text-[#44475B] dark:text-white">Meridian Terminal</span>
-            </div>
+          {/* Top Navigation */}
+          <nav className="bg-white/80 dark:bg-[#1A1D24]/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 z-50 transition-colors duration-300">
+            <div className="max-w-full mx-auto px-6 py-2">
+              <div className="flex items-center justify-between">
+                {/* Left - Logo */}
+                <div className="flex items-center space-x-2">
+                  <div className="w-9 h-9 bg-gradient-to-br from-[#00D09C] to-[#00B386] rounded-full"></div>
+                  <span className="text-base font-semibold text-[#44475B] dark:text-white">Meridian Terminal</span>
+                </div>
 
-            {/* Center - Search */}
-            <div className="flex items-center bg-[#F8F9FA] dark:bg-[#1F2228] rounded-md px-3 py-1.5 w-96">
-              <Search className="w-3.5 h-3.5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search for Stocks, F&O, Indices etc."
-                className="bg-transparent border-none outline-none ml-2 text-xs text-[#44475B] dark:text-gray-300 placeholder-gray-400 w-full"
-              />
-            </div>
+                {/* Center - Search */}
+                <div className="flex items-center bg-[#F8F9FA] dark:bg-[#1F2228] rounded-md px-3 py-1.5 w-96">
+                  <Search className="w-3.5 h-3.5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search for Stocks, F&O, Indices etc."
+                    className="bg-transparent border-none outline-none ml-2 text-xs text-[#44475B] dark:text-gray-300 placeholder-gray-400 w-full"
+                  />
+                </div>
 
-            {/* Right - Market Indices and Profile */}
-            <div className="flex items-center space-x-4">
-              {/* Market Indices */}
-              <div className="flex items-center space-x-3">
-                <div className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-[#1A1D24]">
-                  <div className="text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">NIFTY</div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xs text-[#44475B] dark:text-white font-medium">25,868.80</span>
-                    <span className="text-[10px] text-red-500">-185.10 (0.71%)</span>
+                {/* Right - Market Indices and Profile */}
+                <div className="flex items-center space-x-4">
+                  {/* Market Indices */}
+                  <div className="flex items-center space-x-3">
+                    <div className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-[#1A1D24]">
+                      <div className="text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">NIFTY</div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs text-[#44475B] dark:text-white font-medium">25,868.80</span>
+                        <span className="text-[10px] text-red-500">-185.10 (0.71%)</span>
+                      </div>
+                    </div>
+                    <div className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-[#1A1D24]">
+                      <div className="text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">SENSEX</div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs text-[#44475B] dark:text-white font-medium">84,393.27</span>
+                        <span className="text-[10px] text-red-500">-603.86 (0.71%)</span>
+                      </div>
+                    </div>
+                    <div className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-[#1A1D24]">
+                      <div className="text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">BANKNIFTY</div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs text-[#44475B] dark:text-white font-medium">58,040.25</span>
+                        <span className="text-[10px] text-red-500">-345.00 (0.59%)</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setIsIndicesOpen(true)}
+                      className="text-xs text-[#00D09C] hover:text-[#00B386]"
+                    >
+                      All Indices
+                    </button>
                   </div>
                 </div>
-                <div className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-[#1A1D24]">
-                  <div className="text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">SENSEX</div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xs text-[#44475B] dark:text-white font-medium">84,393.27</span>
-                    <span className="text-[10px] text-red-500">-603.86 (0.71%)</span>
-                  </div>
-                </div>
-                <div className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-[#1A1D24]">
-                  <div className="text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">BANKNIFTY</div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xs text-[#44475B] dark:text-white font-medium">58,040.25</span>
-                    <span className="text-[10px] text-red-500">-345.00 (0.59%)</span>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => setIsIndicesOpen(true)}
-                  className="text-xs text-[#00D09C] hover:text-[#00B386]"
-                >
-                  All Indices
-                </button>
               </div>
             </div>
-          </div>
-        </div>
-      </nav>
+          </nav>
 
-      {/* Terminal Main Content */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left Sidebar - Drawing Tools */}
-        <div className="w-12 bg-white dark:bg-[#131722] border-r border-gray-200 dark:border-gray-800 flex flex-col items-center py-3 space-y-0 overflow-y-auto scrollbar-hide relative transition-colors">
-          {leftSidebarTools.map((tool, index) => (
-            <div key={tool.id}>
-              <button
-                onClick={(e) => {
-                  if (tool.hasSubmenu) {
-                    const buttonRect = e.currentTarget.getBoundingClientRect();
-                    const category = drawingToolsCategories.find(cat => cat.id === tool.category);
-                    const estimatedMenuHeight = category ? (category.tools.length * 32 + 60) : 400; // 32px per item + header
-                    const viewportHeight = window.innerHeight;
-                    
-                    let topPosition = buttonRect.top;
-                    
-                    // If menu would overflow bottom, shift it up
-                    if (topPosition + estimatedMenuHeight > viewportHeight) {
-                      topPosition = Math.max(0, viewportHeight - estimatedMenuHeight - 10);
-                    }
-                    
-                    setMenuPosition({ top: topPosition });
-                    setExpandedCategory(expandedCategory === tool.category ? null : tool.category || null);
-                    setShowToolsMenu(expandedCategory === tool.category ? false : true);
-                  } else {
-                    // Toggle the tool: deselect if already active
-                    setActiveLeftTool(activeLeftTool === tool.id ? "" : tool.id);
+          {/* Terminal Main Content */}
+          <div className="flex flex-1 overflow-hidden">
+            {/* Left Sidebar - Drawing Tools */}
+            <div className="w-12 bg-white dark:bg-[#131722] border-r border-gray-200 dark:border-gray-800 flex flex-col items-center py-3 space-y-0 overflow-y-auto scrollbar-hide relative transition-colors">
+              {leftSidebarTools.map((tool, index) => (
+                <div key={tool.id}>
+                  <button
+                    onClick={(e) => {
+                      if (tool.hasSubmenu) {
+                        const buttonRect = e.currentTarget.getBoundingClientRect();
+                        const category = drawingToolsCategories.find(cat => cat.id === tool.category);
+                        const estimatedMenuHeight = category ? (category.tools.length * 32 + 60) : 400; // 32px per item + header
+                        const viewportHeight = window.innerHeight;
+
+                        let topPosition = buttonRect.top;
+
+                        // If menu would overflow bottom, shift it up
+                        if (topPosition + estimatedMenuHeight > viewportHeight) {
+                          topPosition = Math.max(0, viewportHeight - estimatedMenuHeight - 10);
+                        }
+
+                        setMenuPosition({ top: topPosition });
+                        setExpandedCategory(expandedCategory === tool.category ? null : tool.category || null);
+                        setShowToolsMenu(expandedCategory === tool.category ? false : true);
+                      } else {
+                        // Toggle the tool: deselect if already active
+                        setActiveLeftTool(activeLeftTool === tool.id ? "" : tool.id);
+                        setShowToolsMenu(false);
+                      }
+                    }}
+                    className={`w-full p-2.5 transition-colors relative ${activeLeftTool === tool.id || (showToolsMenu && expandedCategory === tool.category)
+                      ? "bg-[#2962FF] text-white"
+                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                      }`}
+                    title={tool.label}
+                  >
+                    <tool.icon className="w-4 h-4 mx-auto" />
+                    {tool.hasSubmenu && (
+                      <div className="absolute right-0.5 top-1/2 -translate-y-1/2 w-1 h-1 bg-gray-400 rounded-full"></div>
+                    )}
+                  </button>
+                  {/* Divider after certain tools */}
+                  {(index === 0 || index === 6 || index === 8 || index === 10 || index === 13) && (
+                    <div className="w-6 h-px bg-gray-300 dark:bg-gray-800 mx-auto my-1"></div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Drawing Tools Expandable Menu */}
+            {showToolsMenu && expandedCategory && (
+              <>
+                <div
+                  className="fixed inset-0 z-30"
+                  onClick={() => {
                     setShowToolsMenu(false);
-                  }
-                }}
-                className={`w-full p-2.5 transition-colors relative ${
-                  activeLeftTool === tool.id || (showToolsMenu && expandedCategory === tool.category)
-                    ? "bg-[#2962FF] text-white"
-                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-                }`}
-                title={tool.label}
-              >
-                <tool.icon className="w-4 h-4 mx-auto" />
-                {tool.hasSubmenu && (
-                  <div className="absolute right-0.5 top-1/2 -translate-y-1/2 w-1 h-1 bg-gray-400 rounded-full"></div>
-                )}
-              </button>
-              {/* Divider after certain tools */}
-              {(index === 0 || index === 6 || index === 8 || index === 10 || index === 13) && (
-                <div className="w-6 h-px bg-gray-300 dark:bg-gray-800 mx-auto my-1"></div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Drawing Tools Expandable Menu */}
-        {showToolsMenu && expandedCategory && (
-          <>
-            <div 
-              className="fixed inset-0 z-30"
-              onClick={() => {
-                setShowToolsMenu(false);
-                setExpandedCategory(null);
-              }}
-            ></div>
-            <div 
-              className="fixed left-12 w-64 max-h-[90vh] bg-white dark:bg-[#1E222D] border border-gray-200 dark:border-gray-800 shadow-xl z-40 overflow-y-auto scrollbar-hide"
-              style={{ top: `${menuPosition.top}px` }}
-            >
-              <div className="p-2">
-                {drawingToolsCategories
-                  .filter(cat => cat.id === expandedCategory)
-                  .map((category) => (
-                    <div key={category.id}>
-                      <div className="px-2 py-2 border-b border-gray-200 dark:border-gray-800">
-                        <div className="flex items-center space-x-2">
-                          <category.icon className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                          <span className="text-xs font-medium text-gray-900 dark:text-white">{category.label}</span>
-                        </div>
-                      </div>
-                      <div className="mt-1 space-y-0">
-                        {category.tools.map((tool) => (
-                          <button
-                            key={tool.id}
-                            onClick={() => {
-                              setActiveLeftTool(tool.id);
-                              setShowToolsMenu(false);
-                              setExpandedCategory(null);
-                            }}
-                            className={`w-full flex items-center justify-between px-3 py-2 text-left transition-colors ${
-                              activeLeftTool === tool.id
-                                ? "bg-[#2962FF] text-white"
-                                : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                            }`}
-                          >
-                            <span className="text-xs">{tool.label}</span>
-                            {tool.shortcut && (
-                              <span className="text-[10px] text-gray-500 dark:text-gray-400">{tool.shortcut}</span>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Main Chart Area */}
-        <div className="flex-1 flex flex-col transition-all duration-300">
-          {/* Chart Top Bar */}
-          <div className="bg-white dark:bg-[#1A1D24] border-b border-gray-200 dark:border-gray-800 px-4 py-1.5 flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              {/* Stock Info */}
-              <div className="flex items-center space-x-3">
-                <button className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#1F2228]">
-                  <Plus className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                </button>
-                <div className="flex items-center space-x-3">
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm font-semibold text-[#44475B] dark:text-white">
-                        {watchlistStocks.find(s => s.symbol === selectedStock)?.name.toUpperCase() || "RELIANCE INDUSTRIES"}
-                      </span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">{selectedStock}</span>
-                    </div>
-                    <div className="flex items-center space-x-3 text-xs mt-0.5">
-                      <span className="text-[#44475B] dark:text-white">Interval: {selectedInterval.toUpperCase()}</span>
-                      <span className="text-gray-500 dark:text-gray-400">Live Data</span>
-                    </div>
-                  </div>
-                  
-                  {/* Chart Type Selector */}
-                  <div className="relative">
-                    <button 
-                      onClick={() => setShowChartTypeMenu(!showChartTypeMenu)}
-                      className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#1F2228] rounded border border-gray-300 dark:border-gray-700"
-                    >
-                      {(() => {
-                        const ChartIcon = chartStyleOptions.find(opt => opt.id === selectedChartType)?.icon || Activity;
-                        return <ChartIcon className="w-3.5 h-3.5" />;
-                      })()}
-                      <span>{chartStyleOptions.find(opt => opt.id === selectedChartType)?.label || "Candles"}</span>
-                      <ChevronRight className={`w-3 h-3 transition-transform ${showChartTypeMenu ? 'rotate-90' : 'rotate-0'}`} />
-                    </button>
-
-                    {/* Chart Type Dropdown */}
-                    {showChartTypeMenu && (
-                      <>
-                        <div 
-                          className="fixed inset-0 z-30"
-                          onClick={() => setShowChartTypeMenu(false)}
-                        ></div>
-                        <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-[#1E222D] border border-gray-200 dark:border-gray-700 rounded-md shadow-xl z-40 py-1">
-                          {chartStyleOptions.map((option) => {
-                            const OptionIcon = option.icon;
-                            return (
-                              <button
-                                key={option.id}
-                                onClick={() => {
-                                  setSelectedChartType(option.id);
-                                  setShowChartTypeMenu(false);
-                                }}
-                                className={`w-full flex items-center space-x-2 px-3 py-2 text-xs text-left transition-colors ${
-                                  selectedChartType === option.id
-                                    ? "bg-[#00D09C]/10 text-[#00D09C]"
-                                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                                }`}
-                              >
-                                <OptionIcon className="w-3.5 h-3.5" />
-                                <span>{option.label}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Indicators Button */}
-                  <div className="relative">
-                    <button 
-                      onClick={() => {
-                        setShowIndicatorsMenu(!showIndicatorsMenu);
-                        setSelectedCategory(null);
-                        setSearchIndicator("");
-                      }}
-                      className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#1F2228] rounded border border-gray-300 dark:border-gray-700"
-                    >
-                      <Activity className="w-3.5 h-3.5" />
-                      <span>Indicators</span>
-                      {activeIndicators.length > 0 && (
-                        <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-[#00D09C] text-white rounded-full">
-                          {activeIndicators.length}
-                        </span>
-                      )}
-                    </button>
-
-                    {/* Primary Indicators Dropdown */}
-                    {showIndicatorsMenu && !selectedCategory && (
-                      <>
-                        <div 
-                          className="fixed inset-0 z-30"
-                          onClick={() => {
-                            setShowIndicatorsMenu(false);
-                            setSearchIndicator("");
-                          }}
-                        ></div>
-                        <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-[#131722] border border-gray-200 dark:border-gray-800 rounded shadow-2xl z-40">
-                          {/* Header */}
-                          <div className="p-3 border-b border-gray-200 dark:border-gray-800">
-                            <div className="flex items-center justify-between mb-2">
-                              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Indicators</h3>
-                              <button
-                                onClick={() => {
-                                  setShowIndicatorsMenu(false);
-                                  setSearchIndicator("");
-                                }}
-                                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                            <div className="flex items-center bg-gray-100 dark:bg-[#1E222D] rounded px-2 py-1.5">
-                              <Search className="w-3.5 h-3.5 text-gray-400" />
-                              <input
-                                type="text"
-                                value={searchIndicator}
-                                onChange={(e) => setSearchIndicator(e.target.value)}
-                                placeholder="Search"
-                                className="bg-transparent border-none outline-none ml-2 text-xs text-gray-700 dark:text-gray-300 placeholder-gray-400 w-full"
-                              />
-                            </div>
-                          </div>
-
-                          {/* Content */}
-                          <div className="max-h-96 overflow-y-auto">
-                            {searchIndicator ? (
-                              // Search Results
-                              <div className="py-1">
-                                {getFilteredIndicators().length > 0 ? (
-                                  getFilteredIndicators().map((indicator) => (
-                                    <button
-                                      key={indicator.id}
-                                      onClick={() => toggleIndicator(indicator.id)}
-                                      className="w-full flex items-center justify-between px-4 py-2.5 text-xs text-left hover:bg-gray-50 dark:hover:bg-[#1E222D] transition-colors"
-                                    >
-                                      <div className="flex items-center space-x-2">
-                                        <div 
-                                          className="w-2.5 h-2.5 rounded-sm"
-                                          style={{ backgroundColor: indicator.color }}
-                                        />
-                                        <span className="text-gray-700 dark:text-gray-300">{indicator.name}</span>
-                                      </div>
-                                      {activeIndicators.includes(indicator.id) && (
-                                        <div className="w-3.5 h-3.5 rounded-full bg-[#00D09C] flex items-center justify-center">
-                                          <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                          </svg>
-                                        </div>
-                                      )}
-                                    </button>
-                                  ))
-                                ) : (
-                                  <div className="px-4 py-6 text-center text-xs text-gray-500 dark:text-gray-400">
-                                    No indicators found
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              // Category List
-                              <>
-                                <div className="py-1">
-                                  <div className="px-4 py-2 text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    SCRIPT NAME
-                                  </div>
-                                  {indicatorCategories.filter(cat => cat !== "All").map((category) => {
-                                    const categoryIndicators = getIndicatorsByCategory(category);
-                                    const activeCount = categoryIndicators.filter(ind => activeIndicators.includes(ind.id)).length;
-                                    
-                                    return (
-                                      <button
-                                        key={category}
-                                        onClick={() => setSelectedCategory(category)}
-                                        className="w-full flex items-center justify-between px-4 py-2.5 text-xs text-left hover:bg-gray-50 dark:hover:bg-[#1E222D] transition-colors group"
-                                      >
-                                        <span className="text-gray-700 dark:text-gray-300">{category}</span>
-                                        <div className="flex items-center space-x-2">
-                                          {activeCount > 0 && (
-                                            <span className="px-1.5 py-0.5 text-[10px] bg-[#00D09C] text-white rounded">
-                                              {activeCount}
-                                            </span>
-                                          )}
-                                          <ChevronRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300" />
-                                        </div>
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              </>
-                            )}
-                          </div>
-
-                          {/* Footer */}
-                          {activeIndicators.length > 0 && (
-                            <div className="p-3 border-t border-gray-200 dark:border-gray-800">
-                              <button
-                                onClick={() => setActiveIndicators([])}
-                                className="w-full text-xs text-center text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300"
-                              >
-                                Clear all ({activeIndicators.length})
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </>
-                    )}
-
-                    {/* Secondary Category Dropdown */}
-                    {showIndicatorsMenu && selectedCategory && (
-                      <>
-                        <div 
-                          className="fixed inset-0 z-30"
-                          onClick={() => {
-                            setSelectedCategory(null);
-                          }}
-                        ></div>
-                        <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-[#131722] border border-gray-200 dark:border-gray-800 rounded shadow-2xl z-40">
-                          {/* Header */}
-                          <div className="p-3 border-b border-gray-200 dark:border-gray-800">
+                    setExpandedCategory(null);
+                  }}
+                ></div>
+                <div
+                  className="fixed left-12 w-64 max-h-[90vh] bg-white dark:bg-[#1E222D] border border-gray-200 dark:border-gray-800 shadow-xl z-40 overflow-y-auto scrollbar-hide"
+                  style={{ top: `${menuPosition.top}px` }}
+                >
+                  <div className="p-2">
+                    {drawingToolsCategories
+                      .filter(cat => cat.id === expandedCategory)
+                      .map((category) => (
+                        <div key={category.id}>
+                          <div className="px-2 py-2 border-b border-gray-200 dark:border-gray-800">
                             <div className="flex items-center space-x-2">
-                              <button
-                                onClick={() => setSelectedCategory(null)}
-                                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                              >
-                                <ChevronLeft className="w-4 h-4" />
-                              </button>
-                              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{selectedCategory}</h3>
+                              <category.icon className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                              <span className="text-xs font-medium text-gray-900 dark:text-white">{category.label}</span>
                             </div>
                           </div>
-
-                          {/* Indicators List */}
-                          <div className="max-h-96 overflow-y-auto py-1">
-                            {getIndicatorsByCategory(selectedCategory).map((indicator) => (
+                          <div className="mt-1 space-y-0">
+                            {category.tools.map((tool) => (
                               <button
-                                key={indicator.id}
-                                onClick={() => toggleIndicator(indicator.id)}
-                                className="w-full flex items-center justify-between px-4 py-2.5 text-xs text-left hover:bg-gray-50 dark:hover:bg-[#1E222D] transition-colors"
+                                key={tool.id}
+                                onClick={() => {
+                                  setActiveLeftTool(tool.id);
+                                  setShowToolsMenu(false);
+                                  setExpandedCategory(null);
+                                }}
+                                className={`w-full flex items-center justify-between px-3 py-2 text-left transition-colors ${activeLeftTool === tool.id
+                                  ? "bg-[#2962FF] text-white"
+                                  : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                                  }`}
                               >
-                                <div className="flex items-center space-x-2">
-                                  <div 
-                                    className="w-2.5 h-2.5 rounded-sm"
-                                    style={{ backgroundColor: indicator.color }}
-                                  />
-                                  <span className="text-gray-700 dark:text-gray-300">{indicator.name}</span>
-                                </div>
-                                {activeIndicators.includes(indicator.id) && (
-                                  <div className="w-3.5 h-3.5 rounded-full bg-[#00D09C] flex items-center justify-center">
-                                    <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                  </div>
+                                <span className="text-xs">{tool.label}</span>
+                                {tool.shortcut && (
+                                  <span className="text-[10px] text-gray-500 dark:text-gray-400">{tool.shortcut}</span>
                                 )}
                               </button>
                             ))}
                           </div>
                         </div>
-                      </>
-                    )}
+                      ))}
                   </div>
                 </div>
-              </div>
-
-              {/* Timeframe Buttons */}
-              <div className="flex items-center space-x-1 ml-8">
-                {chartTypes.map((type) => (
-                  <button
-                    key={type}
-                    className="px-3 py-1 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#1F2228] rounded"
-                  >
-                    {type}
-                  </button>
-                ))}
-              </div>
-              {/* Undo/Redo */}
-              <div className="flex items-center space-x-1">
-                <button className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#1F2228]">
-                  <Undo2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                </button>
-                <button className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#1F2228]">
-                  <Redo2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                </button>
-              </div>
-            </div>
-
-            {/* Right Side Actions */}
-            <div className="flex items-center space-x-2">
-              <button className="px-4 py-1.5 bg-[#00D09C] hover:bg-[#00B386] text-white text-xs font-medium rounded">
-                B
-              </button>
-              <button className="px-4 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded">
-                S
-              </button>
-              <button 
-                onClick={() => {
-                  setInsightsMode(!insightsMode);
-                  if (insightsMode) {
-                    // Clear insights when toggling off
-                    setInsightsStartDate(null);
-                    setInsightsEndDate(null);
-                  }
-                }}
-                className={`p-1.5 rounded-md transition-colors ${
-                  insightsMode 
-                    ? 'bg-[#00D09C] text-white hover:bg-[#00B386]' 
-                    : 'hover:bg-gray-100 dark:hover:bg-[#1F2228]'
-                }`}
-                title="News Insights - Select period to view important news"
-              >
-                <Lightbulb className={`w-4 h-4 ${insightsMode ? 'text-white' : 'text-gray-600 dark:text-gray-400'}`} />
-              </button>
-              <button className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#1F2228]">
-                <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-              </button>
-              <button className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#1F2228]">
-                <Camera className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-              </button>
-              <button className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#1F2228]">
-                <Share2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-              </button>
-              {isWatchlistOpen && (
-                <button 
-                  onClick={() => setIsWatchlistOpen(false)}
-                  className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#1F2228]"
-                >
-                  <X className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Chart Canvas Area */}
-          <div className="flex-1 bg-white dark:bg-[#0C0E12] relative transition-colors overflow-hidden cursor-crosshair">
-            {/* OHLC Display - Top Left Corner */}
-            {ohlcData && (
-              <div className="absolute top-4 left-4 z-20 bg-gray-100/90 dark:bg-[#1A1D24]/90 backdrop-blur-sm px-3 py-2 rounded-md shadow-lg">
-                <div className="flex items-center space-x-3 text-xs">
-                  <div className="flex items-center space-x-1">
-                    <span className="text-gray-500 dark:text-gray-400">O</span>
-                    <span className={`font-medium ${ohlcData.isBullish ? 'text-[#00D09C]' : 'text-[#EB4D5C]'}`}>
-                      {ohlcData.open.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <span className="text-gray-500 dark:text-gray-400">H</span>
-                    <span className={`font-medium ${ohlcData.isBullish ? 'text-[#00D09C]' : 'text-[#EB4D5C]'}`}>
-                      {ohlcData.high.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <span className="text-gray-500 dark:text-gray-400">L</span>
-                    <span className={`font-medium ${ohlcData.isBullish ? 'text-[#00D09C]' : 'text-[#EB4D5C]'}`}>
-                      {ohlcData.low.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <span className="text-gray-500 dark:text-gray-400">C</span>
-                    <span className={`font-medium ${ohlcData.isBullish ? 'text-[#00D09C]' : 'text-[#EB4D5C]'}`}>
-                      {ohlcData.close.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-1 pl-2 border-l border-gray-300 dark:border-gray-700">
-                    <span className={`font-medium ${ohlcData.isBullish ? 'text-[#00D09C]' : 'text-[#EB4D5C]'}`}>
-                      {ohlcData.change >= 0 ? '+' : ''}{ohlcData.change?.toFixed(2) || '0.00'} ({ohlcData.changePercent >= 0 ? '+' : ''}{ohlcData.changePercent?.toFixed(2) || '0.00'}%)
-                    </span>
-                  </div>
-                </div>
-              </div>
+              </>
             )}
-            
 
-            <TradingChart 
-              symbol={selectedStock} 
-              interval={selectedInterval} 
-              chartType={selectedChartType}
-              onCrosshairMove={handleCrosshairMove}
-              activeIndicators={activeIndicators}
-              onChartClick={handleChartClick}
-              onChartRightClick={handleChartRightClick}
-              chartDateSelectionMode={(dateSelectionMode === "chart" && isPortfolioSidebarOpen) || insightsMode}
-              selectedStartDate={insightsMode ? insightsStartDate : chartSelectedStart}
-              selectedEndDate={insightsMode ? insightsEndDate : chartSelectedEnd}
-              refreshTrigger={refreshTrigger}
-            />
+            {/* Main Chart Area */}
+            <div className="flex-1 flex flex-col transition-all duration-300">
+              {/* Chart Top Bar */}
+              <div className="bg-white dark:bg-[#1A1D24] border-b border-gray-200 dark:border-gray-800 px-4 py-1.5 flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  {/* Stock Info */}
+                  <div className="flex items-center space-x-3">
+                    <button className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#1F2228]">
+                      <Plus className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                    </button>
+                    <div className="flex items-center space-x-3">
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm font-semibold text-[#44475B] dark:text-white">
+                            {watchlistStocks.find(s => s.symbol === selectedStock)?.name.toUpperCase() || "RELIANCE INDUSTRIES"}
+                          </span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">{selectedStock}</span>
+                        </div>
+                        <div className="flex items-center space-x-3 text-xs mt-0.5">
+                          <span className="text-[#44475B] dark:text-white">Interval: {selectedInterval.toUpperCase()}</span>
+                          <span className="text-gray-500 dark:text-gray-400">Live Data</span>
+                        </div>
+                      </div>
 
-            {/* Active Overlay Indicators Legend */}
-            {activeIndicators.filter(id => {
-              // Only show overlay indicators (not those in separate panes)
-              const separatePaneIndicators = ['rsi', 'macd', 'stochastic', 'cci', 'momentum', 'williams', 'roc', 'volume', 'obv', 'cmf', 'adl', 'atr'];
-              return !separatePaneIndicators.includes(id);
-            }).length > 0 && (
-              <div className="absolute top-20 left-4 bg-white/90 dark:bg-[#1A1D24]/90 backdrop-blur-sm border border-gray-200 dark:border-gray-800 rounded px-3 py-2 z-10 shadow-lg">
-                <div className="flex flex-col gap-1.5">
-                  {activeIndicators.filter(id => {
-                    const separatePaneIndicators = ['rsi', 'macd', 'stochastic', 'cci', 'momentum', 'williams', 'roc', 'volume', 'obv', 'cmf', 'adl', 'atr'];
-                    return !separatePaneIndicators.includes(id);
-                  }).map((id) => {
-                    const indicator = technicalIndicators.find(ind => ind.id === id);
-                    if (!indicator) return null;
+                      {/* Chart Type Selector */}
+                      <div className="relative">
+                        <button
+                          onClick={() => setShowChartTypeMenu(!showChartTypeMenu)}
+                          className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#1F2228] rounded border border-gray-300 dark:border-gray-700"
+                        >
+                          {(() => {
+                            const ChartIcon = chartStyleOptions.find(opt => opt.id === selectedChartType)?.icon || Activity;
+                            return <ChartIcon className="w-3.5 h-3.5" />;
+                          })()}
+                          <span>{chartStyleOptions.find(opt => opt.id === selectedChartType)?.label || "Candles"}</span>
+                          <ChevronRight className={`w-3 h-3 transition-transform ${showChartTypeMenu ? 'rotate-90' : 'rotate-0'}`} />
+                        </button>
+
+                        {/* Chart Type Dropdown */}
+                        {showChartTypeMenu && (
+                          <>
+                            <div
+                              className="fixed inset-0 z-30"
+                              onClick={() => setShowChartTypeMenu(false)}
+                            ></div>
+                            <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-[#1E222D] border border-gray-200 dark:border-gray-700 rounded-md shadow-xl z-40 py-1">
+                              {chartStyleOptions.map((option) => {
+                                const OptionIcon = option.icon;
+                                return (
+                                  <button
+                                    key={option.id}
+                                    onClick={() => {
+                                      setSelectedChartType(option.id);
+                                      setShowChartTypeMenu(false);
+                                    }}
+                                    className={`w-full flex items-center space-x-2 px-3 py-2 text-xs text-left transition-colors ${selectedChartType === option.id
+                                      ? "bg-[#00D09C]/10 text-[#00D09C]"
+                                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                      }`}
+                                  >
+                                    <OptionIcon className="w-3.5 h-3.5" />
+                                    <span>{option.label}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Indicators Button */}
+                      <div className="relative">
+                        <button
+                          onClick={() => {
+                            setShowIndicatorsMenu(!showIndicatorsMenu);
+                            setSelectedCategory(null);
+                            setSearchIndicator("");
+                          }}
+                          className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#1F2228] rounded border border-gray-300 dark:border-gray-700"
+                        >
+                          <Activity className="w-3.5 h-3.5" />
+                          <span>Indicators</span>
+                          {activeIndicators.length > 0 && (
+                            <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-[#00D09C] text-white rounded-full">
+                              {activeIndicators.length}
+                            </span>
+                          )}
+                        </button>
+
+                        {/* Primary Indicators Dropdown */}
+                        {showIndicatorsMenu && !selectedCategory && (
+                          <>
+                            <div
+                              className="fixed inset-0 z-30"
+                              onClick={() => {
+                                setShowIndicatorsMenu(false);
+                                setSearchIndicator("");
+                              }}
+                            ></div>
+                            <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-[#131722] border border-gray-200 dark:border-gray-800 rounded shadow-2xl z-40">
+                              {/* Header */}
+                              <div className="p-3 border-b border-gray-200 dark:border-gray-800">
+                                <div className="flex items-center justify-between mb-2">
+                                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Indicators</h3>
+                                  <button
+                                    onClick={() => {
+                                      setShowIndicatorsMenu(false);
+                                      setSearchIndicator("");
+                                    }}
+                                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                </div>
+                                <div className="flex items-center bg-gray-100 dark:bg-[#1E222D] rounded px-2 py-1.5">
+                                  <Search className="w-3.5 h-3.5 text-gray-400" />
+                                  <input
+                                    type="text"
+                                    value={searchIndicator}
+                                    onChange={(e) => setSearchIndicator(e.target.value)}
+                                    placeholder="Search"
+                                    className="bg-transparent border-none outline-none ml-2 text-xs text-gray-700 dark:text-gray-300 placeholder-gray-400 w-full"
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Content */}
+                              <div className="max-h-96 overflow-y-auto">
+                                {searchIndicator ? (
+                                  // Search Results
+                                  <div className="py-1">
+                                    {getFilteredIndicators().length > 0 ? (
+                                      getFilteredIndicators().map((indicator) => (
+                                        <button
+                                          key={indicator.id}
+                                          onClick={() => toggleIndicator(indicator.id)}
+                                          className="w-full flex items-center justify-between px-4 py-2.5 text-xs text-left hover:bg-gray-50 dark:hover:bg-[#1E222D] transition-colors"
+                                        >
+                                          <div className="flex items-center space-x-2">
+                                            <div
+                                              className="w-2.5 h-2.5 rounded-sm"
+                                              style={{ backgroundColor: indicator.color }}
+                                            />
+                                            <span className="text-gray-700 dark:text-gray-300">{indicator.name}</span>
+                                          </div>
+                                          {activeIndicators.includes(indicator.id) && (
+                                            <div className="w-3.5 h-3.5 rounded-full bg-[#00D09C] flex items-center justify-center">
+                                              <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                              </svg>
+                                            </div>
+                                          )}
+                                        </button>
+                                      ))
+                                    ) : (
+                                      <div className="px-4 py-6 text-center text-xs text-gray-500 dark:text-gray-400">
+                                        No indicators found
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  // Category List
+                                  <>
+                                    <div className="py-1">
+                                      <div className="px-4 py-2 text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        SCRIPT NAME
+                                      </div>
+                                      {indicatorCategories.filter(cat => cat !== "All").map((category) => {
+                                        const categoryIndicators = getIndicatorsByCategory(category);
+                                        const activeCount = categoryIndicators.filter(ind => activeIndicators.includes(ind.id)).length;
+
+                                        return (
+                                          <button
+                                            key={category}
+                                            onClick={() => setSelectedCategory(category)}
+                                            className="w-full flex items-center justify-between px-4 py-2.5 text-xs text-left hover:bg-gray-50 dark:hover:bg-[#1E222D] transition-colors group"
+                                          >
+                                            <span className="text-gray-700 dark:text-gray-300">{category}</span>
+                                            <div className="flex items-center space-x-2">
+                                              {activeCount > 0 && (
+                                                <span className="px-1.5 py-0.5 text-[10px] bg-[#00D09C] text-white rounded">
+                                                  {activeCount}
+                                                </span>
+                                              )}
+                                              <ChevronRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300" />
+                                            </div>
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+
+                              {/* Footer */}
+                              {activeIndicators.length > 0 && (
+                                <div className="p-3 border-t border-gray-200 dark:border-gray-800">
+                                  <button
+                                    onClick={() => setActiveIndicators([])}
+                                    className="w-full text-xs text-center text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300"
+                                  >
+                                    Clear all ({activeIndicators.length})
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Secondary Category Dropdown */}
+                        {showIndicatorsMenu && selectedCategory && (
+                          <>
+                            <div
+                              className="fixed inset-0 z-30"
+                              onClick={() => {
+                                setSelectedCategory(null);
+                              }}
+                            ></div>
+                            <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-[#131722] border border-gray-200 dark:border-gray-800 rounded shadow-2xl z-40">
+                              {/* Header */}
+                              <div className="p-3 border-b border-gray-200 dark:border-gray-800">
+                                <div className="flex items-center space-x-2">
+                                  <button
+                                    onClick={() => setSelectedCategory(null)}
+                                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                  >
+                                    <ChevronLeft className="w-4 h-4" />
+                                  </button>
+                                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{selectedCategory}</h3>
+                                </div>
+                              </div>
+
+                              {/* Indicators List */}
+                              <div className="max-h-96 overflow-y-auto py-1">
+                                {getIndicatorsByCategory(selectedCategory).map((indicator) => (
+                                  <button
+                                    key={indicator.id}
+                                    onClick={() => toggleIndicator(indicator.id)}
+                                    className="w-full flex items-center justify-between px-4 py-2.5 text-xs text-left hover:bg-gray-50 dark:hover:bg-[#1E222D] transition-colors"
+                                  >
+                                    <div className="flex items-center space-x-2">
+                                      <div
+                                        className="w-2.5 h-2.5 rounded-sm"
+                                        style={{ backgroundColor: indicator.color }}
+                                      />
+                                      <span className="text-gray-700 dark:text-gray-300">{indicator.name}</span>
+                                    </div>
+                                    {activeIndicators.includes(indicator.id) && (
+                                      <div className="w-3.5 h-3.5 rounded-full bg-[#00D09C] flex items-center justify-center">
+                                        <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                      </div>
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Timeframe Buttons */}
+                  <div className="flex items-center space-x-1 ml-8">
+                    {chartTypes.map((type) => (
+                      <button
+                        key={type}
+                        className="px-3 py-1 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#1F2228] rounded"
+                      >
+                        {type}
+                      </button>
+                    ))}
+                  </div>
+                  {/* Undo/Redo */}
+                  <div className="flex items-center space-x-1">
+                    <button className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#1F2228]">
+                      <Undo2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                    </button>
+                    <button className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#1F2228]">
+                      <Redo2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Right Side Actions */}
+                <div className="flex items-center space-x-2">
+                  <button className="px-4 py-1.5 bg-[#00D09C] hover:bg-[#00B386] text-white text-xs font-medium rounded">
+                    B
+                  </button>
+                  <button className="px-4 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded">
+                    S
+                  </button>
+                  <button
+                    onClick={() => {
+                      setInsightsMode(!insightsMode);
+                      if (insightsMode) {
+                        // Clear insights when toggling off
+                        setInsightsStartDate(null);
+                        setInsightsEndDate(null);
+                      }
+                    }}
+                    className={`p-1.5 rounded-md transition-colors ${insightsMode
+                      ? 'bg-[#00D09C] text-white hover:bg-[#00B386]'
+                      : 'hover:bg-gray-100 dark:hover:bg-[#1F2228]'
+                      }`}
+                    title="News Insights - Select period to view important news"
+                  >
+                    <Lightbulb className={`w-4 h-4 ${insightsMode ? 'text-white' : 'text-gray-600 dark:text-gray-400'}`} />
+                  </button>
+                  <button className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#1F2228]">
+                    <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                  </button>
+                  <button className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#1F2228]">
+                    <Camera className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                  </button>
+                  <button className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#1F2228]">
+                    <Share2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                  </button>
+                  {isWatchlistOpen && (
+                    <button
+                      onClick={() => setIsWatchlistOpen(false)}
+                      className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#1F2228]"
+                    >
+                      <X className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Chart Canvas Area */}
+              <div className="flex-1 bg-white dark:bg-[#0C0E12] relative transition-colors overflow-hidden cursor-crosshair">
+                {/* OHLC Display - Top Left Corner */}
+                {ohlcData && (
+                  <div className="absolute top-4 left-4 z-20 bg-gray-100/90 dark:bg-[#1A1D24]/90 backdrop-blur-sm px-3 py-2 rounded-md shadow-lg">
+                    <div className="flex items-center space-x-3 text-xs">
+                      <div className="flex items-center space-x-1">
+                        <span className="text-gray-500 dark:text-gray-400">O</span>
+                        <span className={`font-medium ${ohlcData.isBullish ? 'text-[#00D09C]' : 'text-[#EB4D5C]'}`}>
+                          {ohlcData.open.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <span className="text-gray-500 dark:text-gray-400">H</span>
+                        <span className={`font-medium ${ohlcData.isBullish ? 'text-[#00D09C]' : 'text-[#EB4D5C]'}`}>
+                          {ohlcData.high.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <span className="text-gray-500 dark:text-gray-400">L</span>
+                        <span className={`font-medium ${ohlcData.isBullish ? 'text-[#00D09C]' : 'text-[#EB4D5C]'}`}>
+                          {ohlcData.low.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <span className="text-gray-500 dark:text-gray-400">C</span>
+                        <span className={`font-medium ${ohlcData.isBullish ? 'text-[#00D09C]' : 'text-[#EB4D5C]'}`}>
+                          {ohlcData.close.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-1 pl-2 border-l border-gray-300 dark:border-gray-700">
+                        <span className={`font-medium ${ohlcData.isBullish ? 'text-[#00D09C]' : 'text-[#EB4D5C]'}`}>
+                          {ohlcData.change >= 0 ? '+' : ''}{ohlcData.change?.toFixed(2) || '0.00'} ({ohlcData.changePercent >= 0 ? '+' : ''}{ohlcData.changePercent?.toFixed(2) || '0.00'}%)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+
+                <TradingChart
+                  symbol={selectedStock}
+                  interval={selectedInterval}
+                  chartType={selectedChartType}
+                  onCrosshairMove={handleCrosshairMove}
+                  activeIndicators={activeIndicators}
+                  onChartClick={handleChartClick}
+                  onChartRightClick={handleChartRightClick}
+                  chartDateSelectionMode={(dateSelectionMode === "chart" && isPortfolioSidebarOpen) || insightsMode}
+                  selectedStartDate={insightsMode ? insightsStartDate : chartSelectedStart}
+                  selectedEndDate={insightsMode ? insightsEndDate : chartSelectedEnd}
+                  refreshTrigger={refreshTrigger}
+                />
+
+                {/* Active Overlay Indicators Legend */}
+                {activeIndicators.filter(id => {
+                  // Only show overlay indicators (not those in separate panes)
+                  const separatePaneIndicators = ['rsi', 'macd', 'stochastic', 'cci', 'momentum', 'williams', 'roc', 'volume', 'obv', 'cmf', 'adl', 'atr'];
+                  return !separatePaneIndicators.includes(id);
+                }).length > 0 && (
+                    <div className="absolute top-20 left-4 bg-white/90 dark:bg-[#1A1D24]/90 backdrop-blur-sm border border-gray-200 dark:border-gray-800 rounded px-3 py-2 z-10 shadow-lg">
+                      <div className="flex flex-col gap-1.5">
+                        {activeIndicators.filter(id => {
+                          const separatePaneIndicators = ['rsi', 'macd', 'stochastic', 'cci', 'momentum', 'williams', 'roc', 'volume', 'obv', 'cmf', 'adl', 'atr'];
+                          return !separatePaneIndicators.includes(id);
+                        }).map((id) => {
+                          const indicator = technicalIndicators.find(ind => ind.id === id);
+                          if (!indicator) return null;
+                          return (
+                            <div key={id} className="flex items-center space-x-2">
+                              <div
+                                className="w-2.5 h-2.5 rounded-full"
+                                style={{ backgroundColor: indicator.color }}
+                              />
+                              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{indicator.name}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+              </div>
+
+              {/* Bottom Timeframe Bar */}
+              <div className="bg-white dark:bg-[#1A1D24] border-t border-gray-200 dark:border-gray-800 px-4 py-1.5 flex items-center justify-between">
+                <div className="flex items-center space-x-1">
+                  {intervals.map((interval) => (
+                    <button
+                      key={interval}
+                      onClick={() => setSelectedInterval(interval)}
+                      className={`px-3 py-1 rounded transition-colors text-sm font-medium ${selectedInterval === interval ? 'bg-[#00D09C] text-white' : 'bg-gray-100 dark:bg-[#23272F] text-gray-700 dark:text-gray-300'}`}
+                    >{interval}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Right Sidebar - Watchlist */}
+            {isWatchlistOpen && (
+              <div className="w-80 bg-white dark:bg-[#1A1D24] border-l border-gray-200 dark:border-gray-800 flex flex-col transition-all duration-300 overflow-hidden">
+                {/* Watchlist Header */}
+                <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-sm font-semibold text-[#44475B] dark:text-white">Watchlist</h2>
+                    <div className="flex items-center space-x-2">
+                      <button className="p-1 hover:bg-gray-100 dark:hover:bg-[#1F2228] rounded">
+                        <Plus className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                      </button>
+                      <button className="p-1 hover:bg-gray-100 dark:hover:bg-[#1F2228] rounded">
+                        <Search className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Watchlist Stocks */}
+                <div className="flex-1 overflow-y-auto scrollbar-hide">
+                  {watchlistStocks.map((stock, idx) => {
+                    const hasNewsData = stocksWithNews.has(stock.name);
                     return (
-                      <div key={id} className="flex items-center space-x-2">
-                        <div 
-                          className="w-2.5 h-2.5 rounded-full"
-                          style={{ backgroundColor: indicator.color }}
-                        />
-                        <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{indicator.name}</span>
+                      <div
+                        key={idx}
+                        onClick={() => setSelectedStock(stock.symbol)}
+                        className={`px-4 py-3 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-[#1F2228] cursor-pointer transition-colors ${selectedStock === stock.symbol ? 'bg-[#00D09C]/5' : ''
+                          } ${hasNewsData ? 'border-l-2 border-l-[#00D09C] bg-[#00D09C]/5' : ''}`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <div className="text-xs font-medium text-[#44475B] dark:text-white">{stock.name}</div>
+                              {hasNewsData && (
+                                <div className="w-1.5 h-1.5 rounded-full bg-[#00D09C] animate-pulse" title="News data available"></div>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{stock.symbol}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs font-semibold text-[#44475B] dark:text-white">{stock.price}</div>
+                            <div className={`text-[10px] ${stock.positive ? 'text-[#00D09C]' : 'text-red-500'}`}>
+                              {stock.change} {stock.percent}
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     );
                   })}
                 </div>
               </div>
             )}
-          </div>
 
-          {/* Bottom Timeframe Bar */}
-          <div className="bg-white dark:bg-[#1A1D24] border-t border-gray-200 dark:border-gray-800 px-4 py-1.5 flex items-center justify-between">
-            <div className="flex items-center space-x-1">
-              {intervals.map((interval) => (
-                <button
-                  key={interval}
-                  onClick={() => setSelectedInterval(interval)}
-                  className={`px-3 py-1 rounded transition-colors text-sm font-medium ${selectedInterval === interval ? 'bg-[#00D09C] text-white' : 'bg-gray-100 dark:bg-[#23272F] text-gray-700 dark:text-gray-300'}`}
-                >{interval}</button>
-              ))}
+            {/* Rightmost Icon Sidebar */}
+            <div className="w-12 bg-white dark:bg-[#131722] border-l border-gray-200 dark:border-gray-800 flex flex-col items-center py-4 space-y-2 transition-colors">
+              <button
+                onClick={() => setIsWatchlistOpen(!isWatchlistOpen)}
+                className={`p-2.5 rounded transition-colors ${isWatchlistOpen
+                  ? "bg-[#00D09C] text-white"
+                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  }`}
+                title="Watchlist"
+              >
+                <List className="w-4 h-4" />
+              </button>
+
+              <div className="w-6 h-px bg-gray-300 dark:bg-gray-800 my-1"></div>
+
+              <button
+                onClick={() => window.open('/portfolio/showcase', '_blank')}
+                className="p-2.5 rounded text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                title="Portfolio Agent"
+              >
+                <FileBarChart className="w-4 h-4" />
+              </button>
+
+              <button
+                className="p-2.5 rounded text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                title="Orders"
+              >
+                <CreditCard className="w-4 h-4" />
+              </button>
+
+              <button
+                className="p-2.5 rounded text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                title="Positions"
+              >
+                <BarChart3 className="w-4 h-4" />
+              </button>
+
+              <div className="w-6 h-px bg-gray-300 dark:bg-gray-800 my-1"></div>
+
+              <button
+                className="p-2.5 rounded text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                title="Alerts"
+              >
+                <Bell className="w-4 h-4" />
+              </button>
+
+              <button
+                className="p-2.5 rounded text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                title="Settings"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
             </div>
           </div>
-        </div>
 
-        {/* Right Sidebar - Watchlist */}
-        {isWatchlistOpen && (
-          <div className="w-80 bg-white dark:bg-[#1A1D24] border-l border-gray-200 dark:border-gray-800 flex flex-col transition-all duration-300 overflow-hidden">
-            {/* Watchlist Header */}
-            <div className="p-4 border-b border-gray-200 dark:border-gray-800">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-semibold text-[#44475B] dark:text-white">Watchlist</h2>
-                <div className="flex items-center space-x-2">
-                  <button className="p-1 hover:bg-gray-100 dark:hover:bg-[#1F2228] rounded">
-                    <Plus className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                  </button>
-                  <button className="p-1 hover:bg-gray-100 dark:hover:bg-[#1F2228] rounded">
-                    <Search className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Watchlist Stocks */}
-            <div className="flex-1 overflow-y-auto scrollbar-hide">
-              {watchlistStocks.map((stock, idx) => {
-                const hasNewsData = stocksWithNews.has(stock.name);
-                return (
-                  <div
-                    key={idx}
-                    onClick={() => setSelectedStock(stock.symbol)}
-                    className={`px-4 py-3 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-[#1F2228] cursor-pointer transition-colors ${
-                      selectedStock === stock.symbol ? 'bg-[#00D09C]/5' : ''
-                    } ${hasNewsData ? 'border-l-2 border-l-[#00D09C] bg-[#00D09C]/5' : ''}`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <div className="text-xs font-medium text-[#44475B] dark:text-white">{stock.name}</div>
-                          {hasNewsData && (
-                            <div className="w-1.5 h-1.5 rounded-full bg-[#00D09C] animate-pulse" title="News data available"></div>
-                          )}
-                        </div>
-                        <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{stock.symbol}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xs font-semibold text-[#44475B] dark:text-white">{stock.price}</div>
-                        <div className={`text-[10px] ${stock.positive ? 'text-[#00D09C]' : 'text-red-500'}`}>
-                          {stock.change} {stock.percent}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Rightmost Icon Sidebar */}
-        <div className="w-12 bg-white dark:bg-[#131722] border-l border-gray-200 dark:border-gray-800 flex flex-col items-center py-4 space-y-2 transition-colors">
-          <button 
-            onClick={() => setIsWatchlistOpen(!isWatchlistOpen)}
-            className={`p-2.5 rounded transition-colors ${
-              isWatchlistOpen 
-                ? "bg-[#00D09C] text-white" 
-                : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-            }`}
-            title="Watchlist"
-          >
-            <List className="w-4 h-4" />
-          </button>
-          
-          <div className="w-6 h-px bg-gray-300 dark:bg-gray-800 my-1"></div>
-          
-          <button 
-            onClick={() => router.push('/portfolio')}
-            className="p-2.5 rounded text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            title="Portfolio Agent"
-          >
-            <FileBarChart className="w-4 h-4" />
-          </button>
-          
-          <button 
-            className="p-2.5 rounded text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            title="Orders"
-          >
-            <CreditCard className="w-4 h-4" />
-          </button>
-          
-          <button 
-            className="p-2.5 rounded text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            title="Positions"
-          >
-            <BarChart3 className="w-4 h-4" />
-          </button>
-          
-          <div className="w-6 h-px bg-gray-300 dark:bg-gray-800 my-1"></div>
-          
-          <button 
-            className="p-2.5 rounded text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            title="Alerts"
-          >
-            <Bell className="w-4 h-4" />
-          </button>
-          
-          <button 
-            className="p-2.5 rounded text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            title="Settings"
-          >
-            <Settings className="w-4 h-4" />
-          </button>
-        </div>
-        </div>
-
-        {/* All Indices Sidebar Modal */}
-        {isIndicesOpen && (
-          <div 
-            className="fixed inset-0 bg-black/30 z-40 transition-all duration-300"
-            onClick={() => setIsIndicesOpen(false)}
-          ></div>
-        )}
-        <div className={`fixed right-0 top-0 h-full w-96 bg-white dark:bg-[#1A1D24] shadow-2xl z-50 flex flex-col transform transition-transform duration-300 ease-in-out ${
-          isIndicesOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}>
+          {/* All Indices Sidebar Modal */}
+          {isIndicesOpen && (
+            <div
+              className="fixed inset-0 bg-black/30 z-40 transition-all duration-300"
+              onClick={() => setIsIndicesOpen(false)}
+            ></div>
+          )}
+          <div className={`fixed right-0 top-0 h-full w-96 bg-white dark:bg-[#1A1D24] shadow-2xl z-50 flex flex-col transform transition-transform duration-300 ease-in-out ${isIndicesOpen ? 'translate-x-0' : 'translate-x-full'
+            }`}>
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
               <h2 className="text-lg font-semibold text-[#44475B] dark:text-white">All indices</h2>
-              <button 
+              <button
                 onClick={() => setIsIndicesOpen(false)}
                 className="p-1 hover:bg-gray-100 dark:hover:bg-[#1F2228] rounded"
               >
@@ -1269,7 +1262,7 @@ export default function Terminal() {
             {/* Indices List */}
             <div className="flex-1 overflow-y-auto scrollbar-hide p-4">
               {allIndices.map((index, idx) => (
-                <div 
+                <div
                   key={idx}
                   className="flex items-center justify-between py-4 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-[#1F2228] cursor-pointer px-3 -mx-3 rounded"
                 >
@@ -1289,7 +1282,7 @@ export default function Terminal() {
 
             {/* Save Button */}
             <div className="p-4 border-t border-gray-200 dark:border-gray-800">
-              <button 
+              <button
                 onClick={() => setIsIndicesOpen(false)}
                 className="w-full py-2.5 bg-gray-100 dark:bg-[#1F2228] text-gray-500 dark:text-gray-400 text-sm font-medium rounded-md hover:bg-gray-200 dark:hover:bg-gray-700"
               >
