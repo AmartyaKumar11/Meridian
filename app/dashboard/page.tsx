@@ -2,14 +2,126 @@
 
 import { Bell, Search, User, TrendingUp, TrendingDown, Bookmark, BarChart3, FileText, Target, Zap, Wallet, Calendar, Filter, Lightbulb, Truck, Flame, Wheat, Briefcase, Laptop, CreditCard, FileBarChart, Headphones, Sun, LogOut, Moon } from "lucide-react";
 import PageTransition from "../components/PageTransition";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "../context/ThemeContext";
 
+interface MarketIndex {
+  name: string;
+  price: string;
+  change: string;
+  percent: string;
+  isPositive: boolean;
+}
+
+interface StockData {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+  changePercent: number;
+}
+
 export default function Dashboard() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [marketIndices, setMarketIndices] = useState<MarketIndex[]>([]);
+  const [topGainers, setTopGainers] = useState<StockData[]>([]);
+  const [topLosers, setTopLosers] = useState<StockData[]>([]);
+  const [trendingStocks, setTrendingStocks] = useState<StockData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
+
+  // Fetch real-time market data
+  useEffect(() => {
+    const fetchMarketData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Fetch multiple stocks in parallel
+        const symbols = [
+          '^NSEI', '^NSEBANK', '^CNXIT', '^NSEMDCP50', '^CNXFIN',
+          'RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'INFY.NS', 'ICICIBANK.NS',
+          'HINDUNILVR.NS', 'BHARTIARTL.NS', 'ITC.NS', 'SBIN.NS', 'LT.NS',
+          'BAJFINANCE.NS', 'HCLTECH.NS', 'KOTAKBANK.NS', 'ASIANPAINT.NS', 'MARUTI.NS'
+        ];
+
+        const requests = symbols.map(symbol =>
+          fetch(`http://localhost:8000/api/stock-data/${symbol}?interval=1d`)
+            .then(res => res.ok ? res.json() : null)
+            .catch(() => null)
+        );
+
+        const results = await Promise.all(requests);
+        
+        // Process indices (first 5 symbols)
+        const indicesData: MarketIndex[] = [];
+        const indexNames = ['NIFTY', 'BANKNIFTY', 'NIFTY IT', 'MIDCPNIFTY', 'FINNIFTY'];
+        
+        for (let i = 0; i < 5; i++) {
+          const data = results[i];
+          if (data && data.length >= 2) {
+            const latest = data[data.length - 1];
+            const previous = data[data.length - 2];
+            const change = latest.close - previous.close;
+            const changePercent = (change / previous.close) * 100;
+            
+            indicesData.push({
+              name: indexNames[i],
+              price: latest.close.toFixed(2),
+              change: `${change >= 0 ? '+' : ''}${change.toFixed(2)} (${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(2)}%)`,
+              percent: `(${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(2)}%)`,
+              isPositive: change >= 0
+            });
+          }
+        }
+        setMarketIndices(indicesData);
+
+        // Process stocks (remaining symbols)
+        const stocksData: StockData[] = [];
+        const stockNames = [
+          'Reliance Industries', 'TCS', 'HDFC Bank', 'Infosys', 'ICICI Bank',
+          'Hindustan Unilever', 'Bharti Airtel', 'ITC', 'SBI', 'L&T',
+          'Bajaj Finance', 'HCL Tech', 'Kotak Bank', 'Asian Paints', 'Maruti'
+        ];
+
+        for (let i = 5; i < results.length; i++) {
+          const data = results[i];
+          if (data && data.length >= 2) {
+            const latest = data[data.length - 1];
+            const previous = data[data.length - 2];
+            const change = latest.close - previous.close;
+            const changePercent = (change / previous.close) * 100;
+            
+            stocksData.push({
+              symbol: symbols[i],
+              name: stockNames[i - 5],
+              price: latest.close,
+              change,
+              changePercent
+            });
+          }
+        }
+
+        // Sort for gainers and losers
+        const sorted = [...stocksData].sort((a, b) => b.changePercent - a.changePercent);
+        setTopGainers(sorted.slice(0, 6));
+        setTopLosers(sorted.slice(-6).reverse());
+        setTrendingStocks(sorted.slice(0, 4));
+        
+      } catch (error) {
+        console.error('Error fetching market data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMarketData();
+    
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchMarketData, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLogout = () => {
     router.push('/');
@@ -175,34 +287,61 @@ export default function Dashboard() {
       <div className="bg-white/80 dark:bg-[#1A1D24]/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 sticky top-[96px] z-30 transition-colors duration-300">
         <div className="max-w-[1400px] mx-auto px-6 py-2">
           <div className="flex items-center space-x-8 text-xs overflow-x-auto">
-            {[
-              { name: "NIFTY", price: "26,053.90", change: "117.70 (0.45%)", isPositive: true },
-              { name: "SENSEX", price: "84,997.13", change: "368.97 (0.44%)", isPositive: true },
-              { name: "BANKNIFTY", price: "58,385.25", change: "171.15 (0.29%)", isPositive: true },
-              { name: "MIDCPNIFTY", price: "13,430.75", change: "64.55 (0.48%)", isPositive: true },
-              { name: "FINNIFTY", price: "27,587", change: "82.35 (0.30%)", isPositive: true },
-            ].map((index) => (
-              <div key={index.name} className="relative group">
-                <div className="flex items-center space-x-2 whitespace-nowrap cursor-pointer">
-                  <span className="text-[#44475B] dark:text-gray-200 font-medium">{index.name}</span>
-                  <span className="text-[#44475B] dark:text-gray-300">{index.price}</span>
-                  <span className={index.isPositive ? "text-green-600" : "text-red-600"}>
-                    {index.change}
-                  </span>
+            {isLoading ? (
+              <div className="text-[#7C7E8C] dark:text-gray-400">Loading market data...</div>
+            ) : marketIndices.length > 0 ? (
+              marketIndices.map((index) => (
+                <div key={index.name} className="relative group">
+                  <div className="flex items-center space-x-2 whitespace-nowrap cursor-pointer">
+                    <span className="text-[#44475B] dark:text-gray-200 font-medium">{index.name}</span>
+                    <span className="text-[#44475B] dark:text-gray-300">{index.price}</span>
+                    <span className={index.isPositive ? "text-green-600" : "text-red-600"}>
+                      {index.change}
+                    </span>
+                  </div>
+                  
+                  <div className="absolute top-full left-0 mt-2 bg-white dark:bg-[#1A1D24] rounded-lg shadow-lg border border-gray-200 dark:border-gray-800 p-2 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity duration-200 z-50 whitespace-nowrap">
+                    <button className="flex items-center gap-2 px-3 py-1.5 text-xs text-[#44475B] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1F2228] rounded w-full text-left">
+                      <BarChart3 className="w-3.5 h-3.5" />
+                      Option chain
+                    </button>
+                    <button className="flex items-center gap-2 px-3 py-1.5 text-xs text-[#44475B] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1F2228] rounded w-full text-left">
+                      <Target className="w-3.5 h-3.5" />
+                      Terminal
+                    </button>
+                  </div>
                 </div>
-                
-                <div className="absolute top-full left-0 mt-2 bg-white dark:bg-[#1A1D24] rounded-lg shadow-lg border border-gray-200 dark:border-gray-800 p-2 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity duration-200 z-50 whitespace-nowrap">
-                  <button className="flex items-center gap-2 px-3 py-1.5 text-xs text-[#44475B] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1F2228] rounded w-full text-left">
-                    <BarChart3 className="w-3.5 h-3.5" />
-                    Option chain
-                  </button>
-                  <button className="flex items-center gap-2 px-3 py-1.5 text-xs text-[#44475B] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1F2228] rounded w-full text-left">
-                    <Target className="w-3.5 h-3.5" />
-                    Terminal
-                  </button>
+              ))
+            ) : (
+              [
+                { name: "NIFTY", price: "26,053.90", change: "117.70 (0.45%)", isPositive: true },
+                { name: "SENSEX", price: "84,997.13", change: "368.97 (0.44%)", isPositive: true },
+                { name: "BANKNIFTY", price: "58,385.25", change: "171.15 (0.29%)", isPositive: true },
+                { name: "MIDCPNIFTY", price: "13,430.75", change: "64.55 (0.48%)", isPositive: true },
+                { name: "FINNIFTY", price: "27,587", change: "82.35 (0.30%)", isPositive: true },
+              ].map((index) => (
+                <div key={index.name} className="relative group">
+                  <div className="flex items-center space-x-2 whitespace-nowrap cursor-pointer">
+                    <span className="text-[#44475B] dark:text-gray-200 font-medium">{index.name}</span>
+                    <span className="text-[#44475B] dark:text-gray-300">{index.price}</span>
+                    <span className={index.isPositive ? "text-green-600" : "text-red-600"}>
+                      {index.change}
+                    </span>
+                  </div>
+                  
+                  <div className="absolute top-full left-0 mt-2 bg-white dark:bg-[#1A1D24] rounded-lg shadow-lg border border-gray-200 dark:border-gray-800 p-2 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity duration-200 z-50 whitespace-nowrap">
+                    <button className="flex items-center gap-2 px-3 py-1.5 text-xs text-[#44475B] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1F2228] rounded w-full text-left">
+                      <BarChart3 className="w-3.5 h-3.5" />
+                      Option chain
+                    </button>
+                    <button className="flex items-center gap-2 px-3 py-1.5 text-xs text-[#44475B] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1F2228] rounded w-full text-left">
+                      <Target className="w-3.5 h-3.5" />
+                      Terminal
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -216,26 +355,50 @@ export default function Dashboard() {
             <div className="bg-white dark:bg-[#1A1D24] rounded-lg p-5 transition-colors duration-300">
               <h2 className="text-lg font-semibold text-[#44475B] dark:text-gray-200 mb-4">Most bought stocks on Groww</h2>
               <div className="grid grid-cols-4 gap-3">
-                {[
-                  { name: "Adani Power", price: "162.10", change: "-0.23 (0.14%)", logo: "adani", isNegative: true },
-                  { name: "Five Star Business", price: "605.05", change: "68.00 (12.66%)", logo: "fivestar", isNegative: false },
-                  { name: "Vodafone Idea", price: "9.36", change: "-0.08 (0.85%)", logo: "vodafone", isNegative: true },
-                  { name: "Coal India", price: "382.00", change: "-9.40 (2.40%)", logo: "coal", isNegative: true },
-                ].map((stock, idx) => (
-                  <div key={idx} className="border border-gray-200 dark:border-gray-800 rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="w-10 h-10 bg-gray-100 dark:bg-[#0F1115] rounded-lg flex items-center justify-center">
-                        <span className="text-xs font-semibold text-[#44475B] dark:text-gray-300">{stock.logo.slice(0, 2).toUpperCase()}</span>
+                {isLoading ? (
+                  <div className="col-span-4 text-center py-8 text-[#7C7E8C] dark:text-gray-400">Loading...</div>
+                ) : trendingStocks.length > 0 ? (
+                  trendingStocks.map((stock, idx) => (
+                    <div key={idx} className="border border-gray-200 dark:border-gray-800 rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="w-10 h-10 bg-gray-100 dark:bg-[#0F1115] rounded-lg flex items-center justify-center">
+                          <span className="text-xs font-semibold text-[#44475B] dark:text-gray-300">
+                            {stock.name.slice(0, 2).toUpperCase()}
+                          </span>
+                        </div>
+                        <Bookmark className="w-4 h-4 text-gray-400" />
                       </div>
-                      <Bookmark className="w-4 h-4 text-gray-400" />
+                      <div className="text-xs font-medium text-[#44475B] dark:text-gray-300 mb-1">{stock.name}</div>
+                      <div className="text-base font-semibold text-[#44475B] dark:text-gray-200 mb-0.5">
+                        ₹{stock.price.toFixed(2)}
+                      </div>
+                      <div className={`text-xs ${stock.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {stock.change >= 0 ? '+' : ''}{stock.change.toFixed(2)} ({stock.changePercent >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%)
+                      </div>
                     </div>
-                    <div className="text-xs font-medium text-[#44475B] dark:text-gray-300 mb-1">{stock.name}</div>
-                    <div className="text-base font-semibold text-[#44475B] dark:text-gray-200 mb-0.5">₹{stock.price}</div>
-                    <div className={`text-xs ${stock.isNegative ? 'text-red-600' : 'text-green-600'}`}>
-                      {stock.change}
+                  ))
+                ) : (
+                  [
+                    { name: "Adani Power", price: "162.10", change: "-0.23 (0.14%)", logo: "adani", isNegative: true },
+                    { name: "Five Star Business", price: "605.05", change: "68.00 (12.66%)", logo: "fivestar", isNegative: false },
+                    { name: "Vodafone Idea", price: "9.36", change: "-0.08 (0.85%)", logo: "vodafone", isNegative: true },
+                    { name: "Coal India", price: "382.00", change: "-9.40 (2.40%)", logo: "coal", isNegative: true },
+                  ].map((stock, idx) => (
+                    <div key={idx} className="border border-gray-200 dark:border-gray-800 rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="w-10 h-10 bg-gray-100 dark:bg-[#0F1115] rounded-lg flex items-center justify-center">
+                          <span className="text-xs font-semibold text-[#44475B] dark:text-gray-300">{stock.logo.slice(0, 2).toUpperCase()}</span>
+                        </div>
+                        <Bookmark className="w-4 h-4 text-gray-400" />
+                      </div>
+                      <div className="text-xs font-medium text-[#44475B] dark:text-gray-300 mb-1">{stock.name}</div>
+                      <div className="text-base font-semibold text-[#44475B] dark:text-gray-200 mb-0.5">₹{stock.price}</div>
+                      <div className={`text-xs ${stock.isNegative ? 'text-red-600' : 'text-green-600'}`}>
+                        {stock.change}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
               <button className="text-[#00B386] text-xs font-medium mt-3 hover:text-[#009970]">See more →</button>
             </div>
@@ -256,45 +419,80 @@ export default function Dashboard() {
                   <div className="col-span-3 text-right">Market price (1D)</div>
                   <div className="col-span-3 text-right">Volume</div>
                 </div>
-                {[
-                  { name: "Adani Green Energy", price: "1,112.60", change: "108.40 (10.79%)", volume: "-", chart: "up", isNegative: false },
-                  { name: "Varun Beverages", price: "495.45", change: "41.30 (9.09%)", volume: "4,45,67,490", chart: "up", isNegative: false },
-                  { name: "IOCL", price: "163.09", change: "-12.45 (7.10%)", volume: "5,84,49,093", chart: "down", isNegative: true },
-                  { name: "Adani Energy Solut.", price: "967.55", change: "46.35 (5.03%)", volume: "62,02,463", chart: "up", isNegative: false },
-                  { name: "RECL", price: "385.55", change: "-8.20 (2.08%)", volume: "1,36,97,186", chart: "down", isNegative: true },
-                  { name: "CG Power & Inds", price: "748.60", change: "26.10 (3.61%)", volume: "60,67,360", chart: "up", isNegative: false },
-                ].map((stock, idx) => (
-                  <div key={idx} className="grid grid-cols-12 gap-4 items-center py-2.5 hover:bg-gray-50 dark:hover:bg-[#1F2228] cursor-pointer">
-                    <div className="col-span-5 flex items-center space-x-2">
-                      <div className="w-9 h-9 bg-gray-100 dark:bg-[#0F1115] rounded-lg flex items-center justify-center flex-shrink-0">
-                        <span className="text-[10px] font-semibold text-[#44475B] dark:text-gray-300">{stock.name.slice(0, 2)}</span>
+                {isLoading ? (
+                  <div className="text-center py-8 text-[#7C7E8C] dark:text-gray-400">Loading...</div>
+                ) : topGainers.length > 0 ? (
+                  topGainers.slice(0, 6).map((stock, idx) => (
+                    <div key={idx} className="grid grid-cols-12 gap-4 items-center py-2.5 hover:bg-gray-50 dark:hover:bg-[#1F2228] cursor-pointer">
+                      <div className="col-span-5 flex items-center space-x-2">
+                        <div className="w-9 h-9 bg-gray-100 dark:bg-[#0F1115] rounded-lg flex items-center justify-center flex-shrink-0">
+                          <span className="text-[10px] font-semibold text-[#44475B] dark:text-gray-300">{stock.name.slice(0, 2)}</span>
+                        </div>
+                        <span className="text-xs text-[#44475B] dark:text-gray-300">{stock.name}</span>
                       </div>
-                      <span className="text-xs text-[#44475B] dark:text-gray-300">{stock.name}</span>
-                    </div>
-                    <div className="col-span-1 flex items-center justify-center">
-                      <div className="w-14 h-7">
-                        <svg viewBox="0 0 60 30" className="w-full h-full">
-                          {stock.chart === "up" ? (
+                      <div className="col-span-1 flex items-center justify-center">
+                        <div className="w-14 h-7">
+                          <svg viewBox="0 0 60 30" className="w-full h-full">
                             <path d="M 0 25 Q 15 20 30 15 T 60 5" fill="none" stroke="#00B386" strokeWidth="2"/>
-                          ) : (
-                            <path d="M 0 5 Q 15 10 30 15 T 60 25" fill="none" stroke="#ef4444" strokeWidth="2"/>
-                          )}
-                        </svg>
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="col-span-3 text-right">
+                        <div className="text-xs text-[#44475B] dark:text-gray-300">₹{stock.price.toFixed(2)}</div>
+                        <div className="text-[10px] text-green-600">
+                          +{stock.change.toFixed(2)} ({stock.changePercent.toFixed(2)}%)
+                        </div>
+                      </div>
+                      <div className="col-span-3 text-right">
+                        <div className="flex items-center justify-end space-x-2">
+                          <span className="text-xs text-[#44475B] dark:text-gray-300">-</span>
+                          <TrendingUp className="w-3.5 h-3.5 text-gray-400" />
+                          <Bookmark className="w-3.5 h-3.5 text-gray-400" />
+                        </div>
                       </div>
                     </div>
-                    <div className="col-span-3 text-right">
-                      <div className="text-xs text-[#44475B] dark:text-gray-300">₹{stock.price}</div>
-                      <div className={`text-[10px] ${stock.isNegative ? 'text-red-600' : 'text-green-600'}`}>{stock.change}</div>
-                    </div>
-                    <div className="col-span-3 text-right">
-                      <div className="flex items-center justify-end space-x-2">
-                        <span className="text-xs text-[#44475B] dark:text-gray-300">{stock.volume}</span>
-                        <TrendingUp className="w-3.5 h-3.5 text-gray-400" />
-                        <Bookmark className="w-3.5 h-3.5 text-gray-400" />
+                  ))
+                ) : (
+                  [
+                    { name: "Adani Green Energy", price: "1,112.60", change: "108.40 (10.79%)", volume: "-", chart: "up", isNegative: false },
+                    { name: "Varun Beverages", price: "495.45", change: "41.30 (9.09%)", volume: "4,45,67,490", chart: "up", isNegative: false },
+                    { name: "IOCL", price: "163.09", change: "-12.45 (7.10%)", volume: "5,84,49,093", chart: "down", isNegative: true },
+                    { name: "Adani Energy Solut.", price: "967.55", change: "46.35 (5.03%)", volume: "62,02,463", chart: "up", isNegative: false },
+                    { name: "RECL", price: "385.55", change: "-8.20 (2.08%)", volume: "1,36,97,186", chart: "down", isNegative: true },
+                    { name: "CG Power & Inds", price: "748.60", change: "26.10 (3.61%)", volume: "60,67,360", chart: "up", isNegative: false },
+                  ].map((stock, idx) => (
+                    <div key={idx} className="grid grid-cols-12 gap-4 items-center py-2.5 hover:bg-gray-50 dark:hover:bg-[#1F2228] cursor-pointer">
+                      <div className="col-span-5 flex items-center space-x-2">
+                        <div className="w-9 h-9 bg-gray-100 dark:bg-[#0F1115] rounded-lg flex items-center justify-center flex-shrink-0">
+                          <span className="text-[10px] font-semibold text-[#44475B] dark:text-gray-300">{stock.name.slice(0, 2)}</span>
+                        </div>
+                        <span className="text-xs text-[#44475B] dark:text-gray-300">{stock.name}</span>
+                      </div>
+                      <div className="col-span-1 flex items-center justify-center">
+                        <div className="w-14 h-7">
+                          <svg viewBox="0 0 60 30" className="w-full h-full">
+                            {stock.chart === "up" ? (
+                              <path d="M 0 25 Q 15 20 30 15 T 60 5" fill="none" stroke="#00B386" strokeWidth="2"/>
+                            ) : (
+                              <path d="M 0 5 Q 15 10 30 15 T 60 25" fill="none" stroke="#ef4444" strokeWidth="2"/>
+                            )}
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="col-span-3 text-right">
+                        <div className="text-xs text-[#44475B] dark:text-gray-300">₹{stock.price}</div>
+                        <div className={`text-[10px] ${stock.isNegative ? 'text-red-600' : 'text-green-600'}`}>{stock.change}</div>
+                      </div>
+                      <div className="col-span-3 text-right">
+                        <div className="flex items-center justify-end space-x-2">
+                          <span className="text-xs text-[#44475B] dark:text-gray-300">{stock.volume}</span>
+                          <TrendingUp className="w-3.5 h-3.5 text-gray-400" />
+                          <Bookmark className="w-3.5 h-3.5 text-gray-400" />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
               <button className="text-[#00B386] text-xs font-medium mt-3 hover:text-[#009970]">See more →</button>
             </div>
